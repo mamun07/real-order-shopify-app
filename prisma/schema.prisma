@@ -1,0 +1,64 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Note that some adapters may set a maximum length for the String type by default, please ensure your strings are long
+// enough when changing adapters.
+// See https://www.prisma.io/docs/orm/reference/prisma-schema-reference#string for more information
+datasource db {
+  provider = "sqlite"
+  url      = "file:dev.sqlite"
+}
+
+model Session {
+  id            String    @id
+  shop          String
+  state         String
+  isOnline      Boolean   @default(false)
+  scope         String?
+  expires       DateTime?
+  accessToken   String
+  userId        BigInt?
+  firstName     String?
+  lastName      String?
+  email         String?
+  accountOwner  Boolean   @default(false)
+  locale        String?
+  collaborator  Boolean?  @default(false)
+  emailVerified Boolean?  @default(false)
+  refreshToken        String?
+  refreshTokenExpires DateTime?
+}
+
+model ShopSettings {
+  id             String   @id @default(cuid())
+  shop           String   @unique
+  enabled        Boolean  @default(true)
+  buttonText     String   @default("Cash on Delivery")
+  buttonColor    String   @default("#F97316")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model CodOrder {
+  id              String   @id @default(cuid())
+  shop            String
+  orderId         String
+  orderName       String
+  customerName    String
+  phone           String
+  province        String?
+  city             String?
+  address         String
+  zip             String?
+  shippingMethod  String
+  total           Float
+  currency        String
+  createdAt       DateTime @default(now())
+
+  @@index([shop])
+  @@index([shop, orderId])
+}

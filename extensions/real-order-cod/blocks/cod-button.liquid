@@ -1,0 +1,79 @@
+{% comment %}
+  Cash on Delivery button + popup checkout for the product page.
+{% endcomment %}
+{{ 'real-order.css' | asset_url | stylesheet_tag }}
+
+{% assign variant = product.selected_or_first_available_variant %}
+
+<div
+  class="real-order-cod"
+  id="real-order-cod-{{ block.id }}"
+  data-real-order-cod
+  data-product-id="{{ product.id }}"
+  data-product-handle="{{ product.handle }}"
+  data-variant-id="{{ variant.id }}"
+  data-product-title="{{ product.title | escape }}"
+  data-variant-title="{{ variant.title | escape }}"
+  data-image="{{ product.featured_image | image_url: width: 200 }}"
+  data-price="{{ variant.price | money_without_currency | strip_html }}"
+  data-compare-at-price="{% if variant.compare_at_price > variant.price %}{{ variant.compare_at_price | money_without_currency | strip_html }}{% endif %}"
+  data-currency="{{ cart.currency.iso_code | default: shop.currency }}"
+  data-currency-symbol="{{ cart.currency.symbol | default: '' }}"
+  data-address-dataset="{{ block.settings.address_dataset }}"
+  data-country-code="{{ block.settings.country_code | default: 'BD' }}"
+  {{ block.shopify_attributes }}
+>
+  <button
+    type="button"
+    class="real-order-cod__trigger"
+    style="--roc-accent: {{ block.settings.button_color }};"
+  >
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4H6z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+      <path d="M3 6h18" stroke="currentColor" stroke-width="2"/>
+      <path d="M16 10a4 4 0 0 1-8 0" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+    </svg>
+    {{ block.settings.button_text | default: 'Cash on Delivery' }}
+  </button>
+</div>
+
+<script src="{{ 'real-order.js' | asset_url }}" defer></script>
+
+{% schema %}
+{
+  "name": "Cash on Delivery",
+  "target": "section",
+  "settings": [
+    {
+      "type": "text",
+      "id": "button_text",
+      "label": "Button text",
+      "default": "Cash on Delivery"
+    },
+    {
+      "type": "color",
+      "id": "button_color",
+      "label": "Button color",
+      "default": "#F97316"
+    },
+    {
+      "type": "select",
+      "id": "address_dataset",
+      "label": "Province / City fields",
+      "options": [
+        { "value": "auto", "label": "Auto (Bangladesh dropdowns or text)" },
+        { "value": "bd", "label": "Always Bangladesh dropdowns" },
+        { "value": "text", "label": "Always free text" }
+      ],
+      "default": "auto"
+    },
+    {
+      "type": "text",
+      "id": "country_code",
+      "label": "Default country",
+      "default": "BD",
+      "info": "ISO 2-letter country code shown before the shopper's real market list (from Shopify Markets) finishes loading, e.g. BD, US, IN."
+    }
+  ]
+}
+{% endschema %}
