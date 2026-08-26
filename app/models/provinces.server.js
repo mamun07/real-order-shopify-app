@@ -1,18 +1,148 @@
 import db from "../db.server";
 
-const DEFAULT_BD_DIVISIONS = {
-  Dhaka: ["Dhaka", "Gazipur", "Narayanganj", "Tangail", "Manikganj", "Munshiganj"],
-  Chattogram: ["Chattogram", "Cox's Bazar", "Comilla", "Feni", "Noakhali", "Rangamati"],
-  Khulna: ["Khulna", "Jessore", "Satkhira", "Bagerhat", "Kushtia", "Chuadanga"],
-  Rajshahi: ["Rajshahi", "Bogura", "Pabna", "Sirajganj", "Natore", "Naogaon"],
-  Barishal: ["Barishal", "Bhola", "Patuakhali", "Pirojpur", "Barguna", "Jhalokati"],
-  Sylhet: ["Sylhet", "Moulvibazar", "Habiganj", "Sunamganj"],
-  Rangpur: ["Rangpur", "Dinajpur", "Kurigram", "Gaibandha", "Nilphamari", "Thakurgaon"],
-  Mymensingh: ["Mymensingh", "Jamalpur", "Netrokona", "Sherpur"],
+// All 64 districts of Bangladesh (flat — the popup's top-level "District"
+// dropdown), each mapped to its real thanas/upazilas (the "Thana"
+// dropdown). Sourced from the Wikipedia "Upazilas of Bangladesh" district
+// breakdown; "Dhaka City" was added to the Dhaka district's list since the
+// upazila-only breakdown otherwise has no entry for the capital itself.
+const DEFAULT_BD_DISTRICTS = {
+  // Dhaka division
+  Dhaka: [
+    "Dhamrai", "Dohar", "Keraniganj", "Nawabganj", "Savar",
+    // Dhaka Metropolitan Police thanas (Dhaka city)
+    "Adabor", "Airport", "Badda", "Banani", "Bangshal", "Bhashantek",
+    "Cantonment", "Chackbazar", "Dakshin Khan", "Darus-Salam", "Demra",
+    "Dhanmondi", "Gandaria", "Gulshan", "Hatirjheel", "Hazaribagh",
+    "Jatrabari", "Kadamtoli", "Kafrul", "Kalabagan", "Kamrangirchar",
+    "Khilgaon", "Khilkhet", "Kotwali", "Lalbagh", "Mirpur Model",
+    "Mohammadpur", "Motijheel", "Mugda", "New Market", "Pallabi",
+    "Paltan Model", "Ramna Model", "Rampura", "Rupnagar", "Sabujbag",
+    "Shah Ali", "Shahbag", "Shahjahanpur", "Sher-e-Bangla Nagar",
+    "Shyampur", "Sutrapur", "Tejgaon", "Tejgaon Industrial", "Turag",
+    "Uttar Khan", "Uttara East", "Uttara West", "Vatara", "Wari",
+  ],
+  Faridpur: ["Alfadanga", "Bhanga", "Boalmari", "Charbhadrasan", "Faridpur Sadar", "Madhukhali", "Nagarkanda", "Sadarpur", "Saltha"],
+  Gazipur: [
+    "Gazipur Sadar", "Kaliakair", "Kaliganj", "Kapasia", "Sreepur",
+    // Gazipur Metropolitan Police thanas (Gazipur city)
+    "Basan", "Gacha", "Joydebpur", "Kashimpur", "Pubail", "Tongi East", "Tongi West",
+  ],
+  Gopalganj: ["Gopalganj Sadar", "Kashiani", "Kotalipara", "Muksudpur", "Tungipara"],
+  Kishoreganj: ["Austagram", "Bajitpur", "Bhairab", "Hossainpur", "Itna", "Karimganj", "Katiadi", "Kishoreganj Sadar", "Kuliarchar", "Mithamain", "Nikli", "Pakundia", "Tarail"],
+  Madaripur: ["Rajoir", "Madaripur Sadar", "Kalkini", "Shibchar", "Dasar"],
+  Manikganj: ["Daulatpur", "Ghior", "Harirampur", "Manikganj Sadar", "Saturia", "Shivalaya", "Singair"],
+  Munshiganj: ["Gazaria", "Lohajang", "Munshiganj Sadar", "Sirajdikhan", "Sreenagar", "Tongibari"],
+  Narayanganj: ["Narayanganj Sadar", "Fatullah", "Siddhirganj", "Bandar", "Sonargaon", "Rupganj", "Araihazar"],
+  Narsingdi: ["Narsingdi Sadar", "Belabo", "Monohardi", "Palash", "Raipura", "Shibpur"],
+  Rajbari: ["Baliakandi", "Goalandaghat", "Pangsha", "Rajbari Sadar", "Kalukhali"],
+  Shariatpur: ["Bhedarganj", "Damudya", "Gosairhat", "Naria", "Shariatpur Sadar", "Zajira"],
+  Tangail: ["Gopalpur", "Basail", "Bhuapur", "Delduar", "Ghatail", "Kalihati", "Madhupur", "Mirzapur", "Nagarpur", "Sakhipur", "Dhanbari", "Tangail Sadar"],
+
+  // Chattogram division
+  Bandarban: ["Ali Kadam", "Bandarban Sadar", "Lama", "Naikhongchhari", "Rowangchhari", "Ruma", "Thanchi"],
+  Brahmanbaria: ["Akhaura", "Bancharampur", "Brahmanbaria Sadar", "Kasba", "Nabinagar", "Nasirnagar", "Sarail", "Ashuganj", "Bijoynagar"],
+  Chandpur: ["Chandpur Sadar", "Faridganj", "Haimchar", "Haziganj", "Kachua", "Matlab Dakshin", "Matlab Uttar", "Shahrasti"],
+  Chattogram: [
+    "Anwara", "Banshkhali", "Boalkhali", "Chandanaish", "Fatikchhari",
+    "Hathazari", "Karnaphuli", "Lohagara", "Mirsharai", "Patiya", "Rangunia",
+    "Raozan", "Sandwip", "Satkania", "Sitakunda",
+    // Chattogram Metropolitan Police thanas (Chattogram city)
+    "Kotwali", "Panchlaish", "Double Mooring", "Bakalia", "Chandgaon",
+    "Bayazid Bostami", "Chawkbazar", "Khulshi", "Pahartali", "Halishahar",
+    "Patenga", "EPZ", "Akbar Shah", "Sadarghat", "Bandar (CMP)",
+  ],
+  Cumilla: ["Bangra", "Barura", "Brahmanpara", "Burichang", "Chandina", "Chauddagram", "Daudkandi", "Debidwar", "Homna", "Laksam", "Lalmai", "Muradnagar", "Nangalkot", "Cumilla Adarsha Sadar", "Meghna", "Titas", "Monohargonj", "Cumilla Sadar Dakshin"],
+  "Cox's Bazar": ["Chakaria", "Cox's Bazar Sadar", "Kutubdia", "Maheshkhali", "Ramu", "Teknaf", "Ukhia", "Pekua", "Eidgaon", "Matamuhuri"],
+  Feni: ["Chhagalnaiya", "Daganbhuiyan", "Feni Sadar", "Parshuram", "Sonagazi", "Fulgazi"],
+  Khagrachhari: ["Dighinala", "Khagrachhari Sadar", "Lakshmichhari", "Mahalchhari", "Manikchhari", "Matiranga", "Panchhari", "Ramgarh", "Guimara"],
+  Lakshmipur: ["Lakshmipur Sadar", "Raipur", "Ramganj", "Ramgati", "Kamalnagar", "Chandraganj"],
+  Noakhali: ["Begumganj", "Noakhali Sadar", "Chatkhil", "Companiganj", "Hatiya", "Senbagh", "Sonaimuri", "Subarnachar", "Kabirhat"],
+  Rangamati: ["Bagaichhari", "Barkal", "Kawkhali", "Belaichhari", "Kaptai", "Juraichhari", "Langadu", "Naniyachar", "Rajasthali", "Rangamati Sadar"],
+
+  // Rajshahi division
+  Bogura: ["Adamdighi", "Bogura Sadar", "Dhunat", "Dhupchanchia", "Gabtali", "Kahaloo", "Nandigram", "Sariakandi", "Shajahanpur", "Sherpur", "Shibganj", "Sonatola", "Mokamtola"],
+  Chapainawabganj: ["Bholahat", "Gomastapur", "Nachole", "Nawabganj Sadar", "Shibganj"],
+  Joypurhat: ["Akkelpur", "Joypurhat Sadar", "Kalai", "Khetlal", "Panchbibi"],
+  Naogaon: ["Atrai", "Badalgachhi", "Dhamoirhat", "Manda", "Mohadevpur", "Naogaon Sadar", "Niamatpur", "Patnitala", "Porsha", "Raninagar", "Sapahar"],
+  Natore: ["Bagatipara", "Baraigram", "Gurudaspur", "Lalpur", "Naldanga", "Natore Sadar", "Singra"],
+  Pabna: ["Atgharia", "Bera", "Bhangura", "Chatmohar", "Faridpur", "Ishwardi", "Pabna Sadar", "Santhia", "Sujanagar"],
+  Rajshahi: [
+    "Bagha", "Bagmara", "Charghat", "Durgapur", "Godagari", "Mohanpur",
+    "Paba", "Puthia", "Tanore",
+    // Rajshahi Metropolitan Police thanas (Rajshahi city)
+    "Boalia", "Rajpara", "Motihar", "Shah Makhdum", "Chandrima",
+    "Kasiadanga", "Katakhali", "Belpukur", "Rajshahi Airport", "Karnahar",
+    "Damkura",
+  ],
+  Sirajganj: ["Belkuchi", "Chauhali", "Kamarkhanda", "Kazipur", "Raiganj", "Shahjadpur", "Sirajganj Sadar", "Tarash", "Ullahpara"],
+
+  // Khulna division
+  Bagerhat: ["Bagerhat Sadar", "Chitalmari", "Fakirhat", "Kachua", "Mollahat", "Mongla", "Morrelganj", "Rampal", "Sarankhola"],
+  Chuadanga: ["Alamdanga", "Chuadanga Sadar", "Damurhuda", "Jibannagar"],
+  Jashore: ["Abhaynagar", "Bagherpara", "Chaugachha", "Jhikargachha", "Keshabpur", "Jashore Sadar", "Manirampur", "Sharsha"],
+  Jhenaidah: ["Harinakunda", "Jhenaidah Sadar", "Kaliganj", "Kotchandpur", "Maheshpur", "Shailkupa"],
+  Khulna: [
+    "Batiaghata", "Dacope", "Dumuria", "Dighalia", "Koyra", "Paikgachha",
+    "Phultala", "Rupsha", "Terokhada",
+    // Khulna Metropolitan Police thanas (Khulna city)
+    "Khulna Sadar", "Sonadanga", "Labanchara", "Harintana", "Khalishpur",
+    "Daulatpur (KMP)", "Khan Jahan Ali", "Aranghata",
+  ],
+  Kushtia: ["Bheramara", "Daulatpur", "Khoksa", "Kumarkhali", "Kushtia Sadar", "Mirpur"],
+  Magura: ["Magura Sadar", "Mohammadpur", "Shalikha", "Sreepur"],
+  Meherpur: ["Gangni", "Meherpur Sadar", "Mujibnagar"],
+  Narail: ["Kalia", "Lohagara", "Narail Sadar"],
+  Satkhira: ["Assasuni", "Debhata", "Kalaroa", "Kaliganj", "Satkhira Sadar", "Shyamnagar", "Tala"],
+
+  // Barishal division
+  Barguna: ["Amtali", "Bamna", "Barguna Sadar", "Betagi", "Patharghata", "Taltali"],
+  Barishal: [
+    "Agailjhara", "Babuganj", "Bakerganj", "Banaripara", "Barisal Sadar",
+    "Gaurnadi", "Hizla", "Mehendiganj", "Muladi", "Wazirpur",
+    // Barisal Metropolitan Police thanas (Barisal city)
+    "Kotwali Model (Barisal)", "Barisal Airport", "Kawnia", "Bandar (Barisal)",
+  ],
+  Bhola: ["Bhola Sadar", "Burhanuddin", "Char Fasson", "Daulatkhan", "Lalmohan", "Manpura", "Tazumuddin"],
+  Jhalokati: ["Jhalokati Sadar", "Kathalia", "Nalchity", "Rajapur"],
+  Patuakhali: ["Bauphal", "Dashmina", "Dumki", "Galachipa", "Kalapara", "Mirzaganj", "Patuakhali Sadar", "Rangabali"],
+  Pirojpur: ["Bhandaria", "Indurkani", "Kawkhali", "Mathbaria", "Nazirpur", "Nesarabad", "Pirojpur Sadar"],
+
+  // Sylhet division
+  Habiganj: ["Ajmiriganj", "Bahubal", "Baniyachong", "Chunarughat", "Habiganj Sadar", "Lakhai", "Madhabpur", "Nabiganj", "Shayestaganj"],
+  Moulvibazar: ["Barlekha", "Juri", "Kamalganj", "Kulaura", "Moulvibazar Sadar", "Rajnagar", "Sreemangal"],
+  Sunamganj: ["Bishwamvarpur", "Chhatak", "Shantiganj", "Derai", "Dharamapasha", "Dowarabazar", "Jagannathpur", "Jamalganj", "Sullah", "Sunamganj Sadar", "Tahirpur", "Madhyanagar"],
+  Sylhet: [
+    "Balaganj", "Beanibazar", "Bishwanath", "Companiganj", "Dakshin Surma",
+    "Fenchuganj", "Golapganj", "Gowainghat", "Jaintiapur", "Kanaighat",
+    "Osmani Nagar", "Sylhet Sadar", "Zakiganj",
+    // Sylhet Metropolitan Police thanas (Sylhet city)
+    "Kotwali Model (Sylhet)", "Moglabazar", "Jalalabad", "Bimanbandar", "Shah Poran",
+  ],
+
+  // Rangpur division
+  Dinajpur: ["Biral", "Birampur", "Birganj", "Bochaganj", "Chirirbandar", "Dinajpur Sadar", "Ghoraghat", "Hakimpur", "Kaharole", "Khansama", "Nawabganj", "Parbatipur", "Phulbari"],
+  Gaibandha: ["Gaibandha Sadar", "Gobindaganj", "Palashbari", "Phulchhari", "Sadullapur", "Sughatta", "Sundarganj"],
+  Kurigram: ["Bhurungamari", "Char Rajibpur", "Chilmari", "Kurigram Sadar", "Nageshwari", "Phulbari", "Rajarhat", "Raomari", "Ulipur"],
+  Lalmonirhat: ["Aditmari", "Hatibandha", "Kaliganj", "Lalmonirhat Sadar", "Patgram"],
+  Nilphamari: ["Dimla", "Domar", "Jaldhaka", "Kishoreganj", "Nilphamari Sadar", "Saidpur"],
+  Panchagarh: ["Atwari", "Boda", "Debiganj", "Panchagarh Sadar", "Tetulia"],
+  Rangpur: [
+    "Badarganj", "Gangachhara", "Kaunia", "Mithapukur", "Pirgachha",
+    "Pirganj", "Rangpur Sadar", "Taraganj",
+    // Rangpur Metropolitan Police thanas (Rangpur city)
+    "Kotwali (Rangpur)", "Haragach", "Tajhat", "Mahiganj", "Hazirhat",
+  ],
+  Thakurgaon: ["Baliadangi", "Haripur", "Pirganj", "Ranisankail", "Thakurgaon Sadar", "Ruhia"],
+
+  // Mymensingh division
+  Jamalpur: ["Baksiganj", "Dewanganj", "Islampur", "Jamalpur Sadar", "Madarganj", "Melandaha", "Sarishabari"],
+  Mymensingh: ["Bhaluka", "Dhobaura", "Fulbaria", "Gafargaon", "South Gafargaon", "Gauripur", "Haluaghat", "Ishwarganj", "Muktagachha", "Mymensingh Sadar", "Nandail", "Phulpur", "Tarakanda", "Trishal"],
+  Netrokona: ["Atpara", "Barhatta", "Durgapur", "Kalmakanda", "Khaliajuri", "Kendua", "Madan", "Mohanganj", "Netrokona Sadar", "Purbadhala"],
+  Sherpur: ["Jhenaigati", "Nakla", "Nalitabari", "Sherpur Sadar", "Sreebardi"],
 };
 
 async function seedDefaults(shop) {
-  const names = Object.keys(DEFAULT_BD_DIVISIONS);
+  const names = Object.keys(DEFAULT_BD_DISTRICTS);
   for (let i = 0; i < names.length; i++) {
     const name = names[i];
     await db.province.create({
@@ -21,8 +151,8 @@ async function seedDefaults(shop) {
         name,
         position: i,
         cities: {
-          create: DEFAULT_BD_DIVISIONS[name].map((cityName, j) => ({
-            name: cityName,
+          create: DEFAULT_BD_DISTRICTS[name].map((thanaName, j) => ({
+            name: thanaName,
             position: j,
           })),
         },
@@ -32,11 +162,13 @@ async function seedDefaults(shop) {
 }
 
 /**
- * The merchant's Province → City list used by the Cash on Delivery popup's
- * address dropdowns (Bangladesh only). Seeded with a default set of
- * divisions/districts on first use so behavior doesn't regress for shops
+ * The merchant's District → Thana list used by the Cash on Delivery popup's
+ * address dropdowns (Bangladesh only). Seeded with all 64 districts and
+ * their thanas/upazilas on first use so behavior doesn't regress for shops
  * that haven't configured anything yet; from then on it's fully
- * merchant-editable from the app settings page.
+ * merchant-editable from the app settings page. (Internally still modeled
+ * as Prisma `Province`/`City` — only the user-facing labels say District/
+ * Thana; renaming the DB models isn't needed for that.)
  */
 export async function getProvinces(shop) {
   const count = await db.province.count({ where: { shop } });

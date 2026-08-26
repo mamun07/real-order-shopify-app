@@ -52,6 +52,30 @@
     return "/apps/cod";
   }
 
+  // Publishes a CUSTOM Web Pixels event via Shopify's own pixel bus. This is
+  // the only mechanism a storefront script can use to reach pixels — it
+  // does nothing on its own. A merchant's Custom Pixel (Settings > Customer
+  // events > Add custom pixel) must explicitly call
+  // analytics.subscribe("InitiateCheckout"/"Purchase", ...)
+  // to receive these. Off-the-shelf Facebook/TikTok/Google pixel apps that
+  // only listen for Shopify's standard checkout_started/checkout_completed
+  // events won't see these, because this app's COD flow never goes through
+  // Shopify Checkout — those standard events can only be emitted by
+  // Shopify's own instrumented checkout, not by app/theme scripts.
+  function publishPixelEvent(name, payload) {
+    try {
+      if (
+        window.Shopify &&
+        window.Shopify.analytics &&
+        typeof window.Shopify.analytics.publish === "function"
+      ) {
+        window.Shopify.analytics.publish(name, payload);
+      }
+    } catch (e) {
+      // Never let analytics wiring break the actual checkout flow.
+    }
+  }
+
   function RealOrderCod(root) {
     this.root = root;
     this.data = {
@@ -96,6 +120,16 @@
     this.data.variantId = this.getSelectedVariantId();
     this.overlay.classList.add("is-open");
     document.body.style.overflow = "hidden";
+
+    var d = this.data;
+    publishPixelEvent("InitiateCheckout", {
+      productId: d.productId,
+      variantId: d.variantId,
+      productTitle: d.productTitle,
+      price: d.price,
+      currency: d.currency,
+      quantity: this.quantity,
+    });
   };
 
   RealOrderCod.prototype.close = function () {
@@ -177,11 +211,11 @@
     var container = this.overlay.querySelector(".roc-address-fields");
     var isBd = this.effectiveIsBd();
     var provinceField = isBd
-      ? this.selectField("province", "Province", ICONS.map, this.provinceOptions())
-      : this.textField("province", "Province", ICONS.map);
+      ? this.selectField("province", "District", ICONS.map, this.provinceOptions())
+      : this.textField("province", "District", ICONS.map);
     var cityField = isBd
-      ? this.selectField("city", "City", ICONS.building, ['<option value="">City</option>'])
-      : this.textField("city", "City", ICONS.building);
+      ? this.selectField("city", "Thana", ICONS.building, ['<option value="">Thana</option>'])
+      : this.textField("city", "Thana", ICONS.building);
     container.innerHTML = provinceField + cityField;
 
     ["province", "city"].forEach(function (name) {
@@ -320,7 +354,7 @@
   };
 
   RealOrderCod.prototype.provinceOptions = function () {
-    var html = ['<option value="">Province</option>'];
+    var html = ['<option value="">District</option>'];
     var provinces = this.bdProvinces || {};
     Object.keys(provinces).forEach(function (name) {
       html.push('<option value="' + name + '">' + escapeHtml(name) + "</option>");
@@ -333,7 +367,7 @@
     if (!cityEl) return;
     var provinces = this.bdProvinces || {};
     var cities = provinces[province] || [];
-    var html = ['<option value="">City</option>'];
+    var html = ['<option value="">Thana</option>'];
     cities.forEach(function (c) {
       html.push('<option value="' + c + '">' + escapeHtml(c) + "</option>");
     });
@@ -444,16 +478,53 @@
       });
   };
 
+  // If the merchant's shipping zone rates are named "Inside Dhaka" /
+  // "Outside Dhaka" (a common Bangladesh COD pattern), lock the shopper to
+  // just the matching rate for their chosen province — only that option is
+  // shown/selectable, not just pre-selected — so a Dhaka shopper can't
+  // accidentally pick the Outside-Dhaka rate or vice versa. Falls back to
+  // showing every option when no province is chosen yet, or when the
+  // merchant's rate names don't match this pattern.
+  RealOrderCod.prototype.getFilteredShippingOptions = function () {
+    if (!this.effectiveIsBd()) return this.shippingOptions;
+
+    var provinceEl = this.overlay.querySelector('[name="province"]');
+    var province = provinceEl ? provinceEl.value.trim().toLowerCase() : "";
+    if (!province) return this.shippingOptions;
+
+    var isDhaka = province === "dhaka";
+    // Only filter OUT the wrong Dhaka variant (e.g. hide "Outside Dhaka"
+    // when the province is Dhaka). Any rate that doesn't mention Dhaka at
+    // all — Free Shipping, Express Delivery, etc. — is left alone: Shopify
+    // only returned it because its own condition (e.g. minimum order
+    // value) already matched, and this filter has no business hiding a
+    // valid, unrelated rate.
+    var filtered = this.shippingOptions.filter(function (o) {
+      var title = o.title.toLowerCase();
+      if (title.indexOf("dhaka") === -1) return true;
+      var isInside = title.indexOf("inside") !== -1;
+      var isOutside = title.indexOf("outside") !== -1;
+      return isDhaka ? isInside : isOutside;
+    });
+
+    return filtered.length ? filtered : this.shippingOptions;
+  };
+
   RealOrderCod.prototype.renderShippingOptions = function () {
     var self = this;
-    if (!this.shippingOptions.length) {
+    var options = this.getFilteredShippingOptions();
+    if (!options.length) {
       this.shipListEl.innerHTML = '<p style="font-size:13px;color:#888;margin:4px 0;">No shipping options for this address.</p>';
       return;
     }
-    if (!this.selectedShipping || !this.shippingOptions.some(function (o) { return o.handle === self.selectedShipping.handle; })) {
-      this.selectedShipping = this.shippingOptions[0];
+    if (!this.selectedShipping || !options.some(function (o) { return o.handle === self.selectedShipping.handle; })) {
+      // Prefer a free rate when one qualifies (Shopify only returned it
+      // because its condition — e.g. minimum order value — already
+      // matched), otherwise fall back to whichever option came first.
+      var freeOption = options.filter(function (o) { return o.amount === 0; })[0];
+      this.selectedShipping = freeOption || options[0];
     }
-    var html = this.shippingOptions
+    var html = options
       .map(function (o) {
         var selected = self.selectedShipping && self.selectedShipping.handle === o.handle;
         return (
@@ -493,8 +564,8 @@
     if (!a.fullName) return "Please enter your full name.";
     if (!a.phone || a.phone.replace(/\D/g, "").length < 6) return "Please enter a valid phone number.";
     if (a.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(a.email)) return "Please enter a valid email address.";
-    if (this.effectiveIsBd() && !a.province) return "Please select your province.";
-    if (this.effectiveIsBd() && !a.city) return "Please select your city.";
+    if (this.effectiveIsBd() && !a.province) return "Please select your district.";
+    if (this.effectiveIsBd() && !a.city) return "Please select your thana.";
     if (!a.address1) return "Please enter your full address.";
     if (!this.selectedShipping) return "Please choose a shipping method.";
     return null;
@@ -563,6 +634,18 @@
     var addressParts = [address.address1, address.city, address.province]
       .filter(Boolean)
       .join(", ");
+
+    publishPixelEvent("Purchase", {
+      orderName: result.orderName,
+      productId: d.productId,
+      variantId: d.variantId,
+      productTitle: d.productTitle,
+      quantity: qty,
+      subtotal: lineTotal,
+      shipping: shippingAmount,
+      total: Number(result.total),
+      currency: currency,
+    });
 
     this.modal.classList.add("roc-modal--success");
     this.bodyEl.innerHTML =

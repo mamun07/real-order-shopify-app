@@ -13,7 +13,7 @@ export default function Orders() {
   const { orders, shop } = useLoaderData();
 
   return (
-    <s-page heading="Cash on Delivery orders">
+    <s-page heading="Cash on Delivery orders" inlineSize="large">
       <s-section>
         {orders.length === 0 ? (
           <s-paragraph>

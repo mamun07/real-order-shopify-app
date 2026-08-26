@@ -6,8 +6,8 @@ function corsHeaders() {
 }
 
 /**
- * The merchant's Province → City list (Bangladesh-only address dropdowns in
- * the Cash on Delivery popup), configured from the app's admin settings
+ * The merchant's District → Thana list (Bangladesh-only address dropdowns
+ * in the Cash on Delivery popup), configured from the app's admin settings
  * (/app/provinces) instead of hardcoded in the storefront JS.
  */
 export const loader = async ({ request }) => {

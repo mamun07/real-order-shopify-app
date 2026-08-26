@@ -52,7 +52,6 @@ export async function createCodOrder(admin, { variantGid, quantity, customer, sh
       price: shippingLine.amount.toFixed(2),
     },
     note,
-    tags: ["Cash on Delivery", "COD", "RealOrder"],
     useCustomerDefaultAddress: false,
   };
 

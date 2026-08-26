@@ -56,7 +56,7 @@ export const action = async ({ request }) => {
         break;
     }
   } catch (error) {
-    console.error("[real-order] Province/city update failed", error);
+    console.error("[real-order] District/thana update failed", error);
     return { error: error.message || "Update failed" };
   }
 
@@ -81,7 +81,7 @@ function renderProvinceModal(province, submit) {
           <s-stack direction="inline" gap="tight">
             <s-text-field
               name="name"
-              label="Province name"
+              label="District name"
               defaultValue={province.name}
             />
             <s-button type="submit" variant="tertiary">
@@ -91,11 +91,11 @@ function renderProvinceModal(province, submit) {
         </form>
 
         {province.cities.length === 0 ? (
-          <s-paragraph>No cities yet.</s-paragraph>
+          <s-paragraph>No thanas yet.</s-paragraph>
         ) : (
           <s-table>
             <s-table-header-row>
-              <s-table-header>City</s-table-header>
+              <s-table-header>Thana</s-table-header>
               <s-table-header></s-table-header>
             </s-table-header-row>
             <s-table-body>
@@ -130,9 +130,9 @@ function renderProvinceModal(province, submit) {
           <input type="hidden" name="intent" value="addCity" />
           <input type="hidden" name="provinceId" value={province.id} />
           <s-stack direction="inline" gap="tight">
-            <s-text-field name="name" label="City name" placeholder="Add a city" />
+            <s-text-field name="name" label="Thana name" placeholder="Add a thana" />
             <s-button type="submit" variant="tertiary">
-              Add city
+              Add thana
             </s-button>
           </s-stack>
         </form>
@@ -161,12 +161,12 @@ export default function Provinces() {
   const submit = (data) => fetcher.submit(data, { method: "POST" });
 
   return (
-    <s-page heading="Province & City list">
+    <s-page heading="District & Thana list" inlineSize="large">
       <s-link slot="breadcrumb-actions" href="/app">
         Back
       </s-link>
       <s-paragraph>
-        This list powers the Province and City dropdowns in the Cash on
+        This list powers the District and Thana dropdowns in the Cash on
         Delivery popup for Bangladesh addresses. It doesn&apos;t affect any
         other country — shoppers selecting another country get a plain text
         address field instead.
@@ -176,7 +176,7 @@ export default function Provinces() {
         <s-banner tone="critical">{fetcher.data.error}</s-banner>
       )}
 
-      <s-section heading="Add a province">
+      <s-section heading="Add a district">
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -187,20 +187,20 @@ export default function Provinces() {
         >
           <input type="hidden" name="intent" value="addProvince" />
           <s-stack direction="inline" gap="base">
-            <s-text-field name="name" label="Province name" labelAccessibilityVisibility="exclusive" placeholder="Province name" />
-            <s-button type="submit">Add province</s-button>
+            <s-text-field name="name" label="District name" labelAccessibilityVisibility="exclusive" placeholder="District name" />
+            <s-button type="submit">Add district</s-button>
           </s-stack>
         </form>
       </s-section>
 
-      <s-section heading="Provinces">
+      <s-section heading="Districts">
         {provinces.length === 0 ? (
-          <s-paragraph>No provinces yet — add one above.</s-paragraph>
+          <s-paragraph>No districts yet — add one above.</s-paragraph>
         ) : (
           <s-table>
             <s-table-header-row>
-              <s-table-header>Province</s-table-header>
-              <s-table-header>Cities</s-table-header>
+              <s-table-header>District</s-table-header>
+              <s-table-header>Thanas</s-table-header>
               <s-table-header></s-table-header>
             </s-table-header-row>
             <s-table-body>
