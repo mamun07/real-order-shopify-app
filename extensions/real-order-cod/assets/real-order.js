@@ -116,9 +116,6 @@
     this.overlay = overlay;
     this.modal = overlay.querySelector(".roc-modal");
 
-    overlay.addEventListener("click", function (e) {
-      if (e.target === overlay) self.close();
-    });
     overlay.querySelector(".roc-modal__close").addEventListener("click", function () {
       self.close();
     });
