@@ -43,6 +43,28 @@ model ShopSettings {
   updatedAt      DateTime @updatedAt
 }
 
+model Province {
+  id        String   @id @default(cuid())
+  shop      String
+  name      String
+  position  Int      @default(0)
+  cities    City[]
+  createdAt DateTime @default(now())
+
+  @@index([shop])
+}
+
+model City {
+  id         String   @id @default(cuid())
+  provinceId String
+  province   Province @relation(fields: [provinceId], references: [id], onDelete: Cascade)
+  name       String
+  position   Int      @default(0)
+  createdAt  DateTime @default(now())
+
+  @@index([provinceId])
+}
+
 model CodOrder {
   id              String   @id @default(cuid())
   shop            String

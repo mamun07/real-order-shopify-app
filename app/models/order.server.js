@@ -17,6 +17,8 @@ const DRAFT_ORDER_COMPLETE = `#graphql
         order {
           id
           name
+          subtotalPriceSet { shopMoney { amount currencyCode } }
+          totalShippingPriceSet { shopMoney { amount currencyCode } }
           totalPriceSet { shopMoney { amount currencyCode } }
         }
       }

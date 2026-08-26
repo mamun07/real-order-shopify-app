@@ -51,7 +51,7 @@ export default function Orders() {
                   </s-table-cell>
                   <s-table-cell>{o.shippingMethod}</s-table-cell>
                   <s-table-cell>
-                    {o.total.toFixed(2)} {o.currency}
+                    {o.currency} {o.total.toFixed(2)}
                   </s-table-cell>
                   <s-table-cell>
                     {new Date(o.createdAt).toLocaleString()}

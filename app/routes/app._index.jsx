@@ -103,14 +103,6 @@ export default function Index() {
 
       {isSaving && <s-spinner accessibilityLabel="Saving" />}
 
-      <s-section slot="aside" heading="Shipping">
-        <s-paragraph>
-          Real Order always uses your real Shopify shipping zones and rates —
-          it never invents its own.
-        </s-paragraph>
-        <s-link href="/app/shipping-zones">View shipping zones & rates</s-link>
-      </s-section>
-
       <s-section slot="aside" heading="Orders">
         <s-paragraph>
           <s-text emphasis="bold">{orderCount}</s-text> Cash on Delivery{" "}

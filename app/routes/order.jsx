@@ -118,6 +118,8 @@ export const action = async ({ request }) => {
       {
         success: true,
         orderName: order.name,
+        subtotal: order.subtotalPriceSet.shopMoney.amount,
+        shipping: order.totalShippingPriceSet.shopMoney.amount,
         total: order.totalPriceSet.shopMoney.amount,
         currency: order.totalPriceSet.shopMoney.currencyCode,
       },

@@ -1,17 +1,6 @@
 (function () {
   "use strict";
 
-  var BD_DIVISIONS = {
-    Dhaka: ["Dhaka", "Gazipur", "Narayanganj", "Tangail", "Manikganj", "Munshiganj"],
-    Chattogram: ["Chattogram", "Cox's Bazar", "Comilla", "Feni", "Noakhali", "Rangamati"],
-    Khulna: ["Khulna", "Jessore", "Satkhira", "Bagerhat", "Kushtia", "Chuadanga"],
-    Rajshahi: ["Rajshahi", "Bogura", "Pabna", "Sirajganj", "Natore", "Naogaon"],
-    Barishal: ["Barishal", "Bhola", "Patuakhali", "Pirojpur", "Barguna", "Jhalokati"],
-    Sylhet: ["Sylhet", "Moulvibazar", "Habiganj", "Sunamganj"],
-    Rangpur: ["Rangpur", "Dinajpur", "Kurigram", "Gaibandha", "Nilphamari", "Thakurgaon"],
-    Mymensingh: ["Mymensingh", "Jamalpur", "Netrokona", "Sherpur"],
-  };
-
   var ICONS = {
     person:
       '<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="2"/><path d="M4 20c0-4 4-6 8-6s8 2 8 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
@@ -45,7 +34,7 @@
 
   function formatMoney(amount, currency) {
     var n = Number(amount || 0);
-    return n.toFixed(2) + " " + currency;
+    return currency + " " + n.toFixed(2);
   }
 
   function debounce(fn, wait) {
@@ -79,10 +68,13 @@
       currency: root.dataset.currency,
       addressDataset: root.dataset.addressDataset || "auto",
       countryCode: root.dataset.countryCode || "BD",
+      presentmentCountry: root.dataset.presentmentCountry || null,
     };
     this.quantity = 1;
     this.selectedShipping = null;
+    this.liveSubtotal = null;
     this.shippingOptions = [];
+    this.bdProvinces = null;
     this.trigger = root.querySelector(".real-order-cod__trigger");
     this.trigger.addEventListener("click", this.open.bind(this));
     this.fetchRates = debounce(this._fetchRates.bind(this), 500);
@@ -167,6 +159,7 @@
 
     this.renderAddressFields();
     this.initCountrySelect();
+    this.loadProvinces();
 
     this.formEl.addEventListener("submit", function (e) {
       e.preventDefault();
@@ -255,6 +248,24 @@
       .catch(function () {});
   };
 
+  RealOrderCod.prototype.loadProvinces = function () {
+    var self = this;
+    fetch(getProxyBase() + "/provinces")
+      .then(function (r) {
+        return r.json();
+      })
+      .then(function (json) {
+        var provinces = json.provinces || [];
+        if (!provinces.length) return;
+        self.bdProvinces = {};
+        provinces.forEach(function (p) {
+          self.bdProvinces[p.name] = p.cities;
+        });
+        if (self.effectiveIsBd()) self.renderAddressFields();
+      })
+      .catch(function () {});
+  };
+
   RealOrderCod.prototype.countryField = function () {
     var code = this.data.countryCode;
     return this.selectField("country", "Country", ICONS.globe, [
@@ -313,8 +324,9 @@
 
   RealOrderCod.prototype.provinceOptions = function () {
     var html = ['<option value="">Province</option>'];
-    Object.keys(BD_DIVISIONS).forEach(function (name) {
-      html.push('<option value="' + name + '">' + name + "</option>");
+    var provinces = this.bdProvinces || {};
+    Object.keys(provinces).forEach(function (name) {
+      html.push('<option value="' + name + '">' + escapeHtml(name) + "</option>");
     });
     return html;
   };
@@ -322,10 +334,11 @@
   RealOrderCod.prototype.populateCities = function (province, keepEmpty) {
     var cityEl = this.overlay.querySelector('[name="city"]');
     if (!cityEl) return;
-    var cities = BD_DIVISIONS[province] || [];
+    var provinces = this.bdProvinces || {};
+    var cities = provinces[province] || [];
     var html = ['<option value="">City</option>'];
     cities.forEach(function (c) {
-      html.push('<option value="' + c + '">' + c + "</option>");
+      html.push('<option value="' + c + '">' + escapeHtml(c) + "</option>");
     });
     cityEl.innerHTML = html.join("");
     if (keepEmpty) cityEl.value = "";
@@ -374,12 +387,17 @@
   };
 
   RealOrderCod.prototype.subtotal = function () {
+    if (this.liveSubtotal) return Number(this.liveSubtotal.amount);
     return this.data.price * this.quantity;
   };
 
   RealOrderCod.prototype.updateSummary = function () {
     var subtotal = this.subtotal();
-    var currency = this.data.currency;
+    // Once the server returns a live subtotal, it and every shipping option
+    // were fetched in the same @inContext(country: ...) currency, so use
+    // that currency for the whole summary instead of the page's static
+    // (possibly different) currency — keeps everything on screen consistent.
+    var currency = this.liveSubtotal ? this.liveSubtotal.currencyCode : this.data.currency;
     this.summarySubtotalEl.textContent = formatMoney(subtotal, currency);
     var shippingAmount = this.selectedShipping ? this.selectedShipping.amount : 0;
     this.summaryShippingEl.textContent = this.selectedShipping
@@ -400,6 +418,7 @@
     if (!address.address1 || !address.city) return;
 
     this.shipListEl.innerHTML = '<p style="font-size:13px;color:#888;margin:4px 0;">Loading shipping options…</p>';
+    this.liveSubtotal = null;
 
     fetch(getProxyBase() + "/rates", {
       method: "POST",
@@ -411,6 +430,7 @@
         city: address.city,
         province: address.province,
         countryCode: this.data.countryCode,
+        presentmentCountry: this.data.presentmentCountry,
       }),
     })
       .then(function (r) {
@@ -418,9 +438,11 @@
       })
       .then(function (json) {
         self.shippingOptions = json.options || [];
+        self.liveSubtotal = json.subtotal || null;
         self.renderShippingOptions();
       })
       .catch(function () {
+        self.liveSubtotal = null;
         self.shipListEl.innerHTML = '<p style="font-size:13px;color:#d82c0d;margin:4px 0;">Couldn’t load shipping options. Please try again.</p>';
       });
   };
@@ -531,10 +553,15 @@
   RealOrderCod.prototype.showSuccess = function (result, address) {
     var self = this;
     var d = this.data;
-    var currency = result.currency || d.currency;
+    // Use the amounts the real Shopify order was created with (always the
+    // shop's base currency) rather than recomputing from the popup's
+    // possibly-localized display values, so every number on this screen is
+    // guaranteed to match the currency label next to it.
+    var currency = result.currency;
     var qty = this.quantity;
-    var lineTotal = d.price * qty;
-    var shippingAmount = this.selectedShipping ? this.selectedShipping.amount : 0;
+    var lineTotal = Number(result.subtotal);
+    var unitPrice = lineTotal / qty;
+    var shippingAmount = Number(result.shipping);
     var shippingLabel = this.selectedShipping ? this.selectedShipping.title : "";
     var addressParts = [address.address1, address.city, address.province]
       .filter(Boolean)
@@ -566,17 +593,9 @@
       "</div>" +
       '<div class="roc-success-product__info">' +
       "<p class=\"roc-success-product__title\">" + escapeHtml(d.productTitle) + "</p>" +
-      '<p class="roc-success-product__price">' +
-      (d.compareAtPrice
-        ? '<s>' + formatMoney(d.compareAtPrice, currency) + "</s>/ea "
-        : "") +
-      formatMoney(d.price, currency) + "/ea" +
-      "</p>" +
+      '<p class="roc-success-product__price">' + formatMoney(unitPrice, currency) + "/ea</p>" +
       "</div>" +
       '<div class="roc-success-product__total">' +
-      (d.compareAtPrice
-        ? '<s>' + formatMoney(d.compareAtPrice * qty, currency) + "</s>"
-        : "") +
       "<strong>" + formatMoney(lineTotal, currency) + "</strong>" +
       "</div>" +
       "</div>" +

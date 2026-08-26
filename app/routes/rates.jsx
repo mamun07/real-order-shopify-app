@@ -29,6 +29,7 @@ export const action = async ({ request }) => {
     city,
     province,
     countryCode = "BD",
+    presentmentCountry,
   } = body || {};
 
   if (!variantId || !address1 || !city) {
@@ -49,6 +50,7 @@ export const action = async ({ request }) => {
       quantity: Number(quantity),
       address: { address1, city, provinceCode: province },
       countryCode,
+      presentmentCountry: presentmentCountry || countryCode,
     });
 
     return Response.json(
