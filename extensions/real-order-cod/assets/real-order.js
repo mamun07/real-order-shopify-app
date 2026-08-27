@@ -276,7 +276,9 @@
         self.renderAddressFields();
         self.fetchRates();
       })
-      .catch(function () {});
+      .catch(function (e) {
+        console.warn("[real-order] Could not load shipping-zone countries (is the app proxy configured?)", e);
+      });
   };
 
   RealOrderCod.prototype.loadProvinces = function () {
@@ -294,7 +296,9 @@
         });
         if (self.effectiveIsBd()) self.renderAddressFields();
       })
-      .catch(function () {});
+      .catch(function (e) {
+        console.warn("[real-order] Could not load District/Thana list (is the app proxy configured?)", e);
+      });
   };
 
   RealOrderCod.prototype.countryField = function () {
