@@ -9,6 +9,8 @@ primary_region = 'sin'
 [build]
 [env]
   PORT = '3000'
+  DATABASE_URL = 'file:/data/dev.sqlite'
+  NODE_ENV = 'production'
   SCOPES = 'read_products,read_shipping,unauthenticated_read_checkouts,unauthenticated_read_product_listings,unauthenticated_write_checkouts,write_draft_orders,write_orders'
   SHOPIFY_API_KEY = '78f9b5e49d8bebc5cf3ee772d58b1136'
   SHOPIFY_APP_URL = 'https://real-order.fly.dev'

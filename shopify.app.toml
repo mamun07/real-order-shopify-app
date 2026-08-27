@@ -1,7 +1,7 @@
 # Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
 
-client_id = "78f9b5e49d8bebc5cf3ee772d58b1136"
-application_url = "https://real-order.fly.dev"
+client_id = "e35e650f256067d020670921f7a25ed0"
+application_url = "https://example.com"
 embedded = true
 name = "Real COD Order"
 
@@ -13,11 +13,8 @@ api_version = "2026-10"
 scopes = "read_products,read_shipping,unauthenticated_read_checkouts,unauthenticated_read_product_listings,unauthenticated_write_checkouts,write_draft_orders,write_orders"
 
 [auth]
-redirect_urls = [
-  "https://real-order.fly.dev/auth/callback",
-  "https://real-order.fly.dev/auth/shopify/callback",
-  "https://real-order.fly.dev/api/auth/callback"
-]
+redirect_urls = [ "https://example.com/api/auth" ]
 
 [build]
+include_config_on_deploy = true
 automatically_update_urls_on_dev = true
