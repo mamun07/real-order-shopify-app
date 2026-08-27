@@ -24,7 +24,6 @@
     "node": ">=20.19 <22 || >=22.12"
   },
   "dependencies": {
-    "@flydotio/litestream": "^1.0.1",
     "@prisma/client": "^6.16.3",
     "@react-router/dev": "^7.12.0",
     "@react-router/fs-routes": "^7.12.0",
@@ -71,8 +70,5 @@
   "overrides": {
     "p-map": "^4.0.0"
   },
-  "author": "mamun",
-  "dockerfile": {
-    "litestream": true
-  }
+  "author": "mamun"
 }

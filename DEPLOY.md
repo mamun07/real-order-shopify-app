@@ -8,7 +8,7 @@ run as a **single Fly.io machine** with the SQLite database on a **persistent vo
 ## 0. What you receive
 
 - Full source (no `node_modules`, no `.git`, no `.env`, no local database).
-- `Dockerfile`, `fly.toml`, `litestream.yml` — deploy config, ready to use.
+- `Dockerfile`, `fly.toml` — deploy config, ready to use.
 - `.env.example` — the full list of environment variables.
 - `dbsetup.js` — runs `prisma migrate deploy` on boot and links the DB onto the volume.
 
@@ -67,16 +67,11 @@ Only the Shopify **API secret** is required. The rest are non-secret and already
 fly secrets set SHOPIFY_API_SECRET=<the_app_client_secret> --app real-order
 ```
 
-Optional — only if you enable Litestream S3 backups (see `litestream.yml`):
+That is the only secret. Everything else is in `fly.toml [env]`.
 
-```bash
-fly secrets set \
-  AWS_ENDPOINT_URL_S3=<s3_endpoint> \
-  BUCKET_NAME=<bucket> \
-  AWS_ACCESS_KEY_ID=<key> \
-  AWS_SECRET_ACCESS_KEY=<secret> \
-  --app real-order
-```
+> This app does **not** use object storage (Tigris/S3). If the Fly launcher tries to
+> create a Tigris bucket, that step is safe to skip — persistence comes from the
+> `data` volume alone.
 
 ---
 
@@ -120,9 +115,9 @@ Then reinstall the app on the test store.
   `min_machines_running = 0` with `auto_start_machines` is fine (cold start on request).
 - **Database persistence** depends entirely on the `data` volume + `DATABASE_URL`
   pointing at `/data`. Both are already wired in `fly.toml`. Don't remove the mount.
-- **Litestream** (`litestream.yml`) is optional streaming backup to S3. It is NOT
-  active unless you set the `AWS_*` / `BUCKET_NAME` secrets. The Fly volume alone is
-  the primary store.
+- **No object storage.** This app has no Tigris/S3 dependency. If the Fly launcher
+  offers to create a Tigris bucket, skip it. For DB backups later, use
+  `fly volumes snapshots` or add Litestream separately.
 - `extensions/real-order-cod` is a theme app extension; it ships to Shopify via
   `npm run deploy`, not via Fly.
 - CI: `.github/workflows/fly-deploy.yml` auto-deploys on push to `main`/`master`
