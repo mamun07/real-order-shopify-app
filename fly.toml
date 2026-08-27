@@ -1,16 +1,17 @@
-# fly.toml app configuration file generated for real-order on 2026-08-27T12:37:33+06:00
+# fly.toml app configuration file generated for real-cod-order on 2026-08-27T12:29:33Z
 #
 # See https://fly.io/docs/reference/configuration/ for information about how to use this file.
 #
 
-app = 'real-order'
+app = 'real-cod-order'
 primary_region = 'sin'
 
 [build]
+
 [env]
-  PORT = '3000'
   DATABASE_URL = 'file:/data/dev.sqlite'
   NODE_ENV = 'production'
+  PORT = '3000'
   SCOPES = 'read_products,read_shipping,unauthenticated_read_checkouts,unauthenticated_read_product_listings,unauthenticated_write_checkouts,write_draft_orders,write_orders'
   SHOPIFY_API_KEY = '78f9b5e49d8bebc5cf3ee772d58b1136'
   SHOPIFY_APP_URL = 'https://real-order.fly.dev'
@@ -35,5 +36,6 @@ primary_region = 'sin'
 
 [[vm]]
   memory = '1gb'
+  cpu_kind = 'shared'
   cpus = 1
   memory_mb = 1024
