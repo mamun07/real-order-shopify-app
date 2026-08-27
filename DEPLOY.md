@@ -16,10 +16,11 @@ App identity is already configured in `shopify.app.toml` and `fly.toml`:
 
 | Setting        | Value                          |
 | -------------- | ------------------------------ |
-| Fly app name   | `real-order`                   |
+| Fly app name   | `real-cod-order`                   |
 | Region         | `sin` (Singapore)              |
-| App URL        | `https://real-order.fly.dev`   |
-| SHOPIFY_API_KEY| `78f9b5e49d8bebc5cf3ee772d58b1136` (public client id — safe to keep) |
+| App URL        | `https://real-cod-order.fly.dev`   |
+| SHOPIFY_API_KEY| `e35e650f256067d020670921f7a25ed0` (public client id — safe to keep) |
+| SHOPIFY_API_SECRET | set as a Fly secret — the API **secret key** of the same app in Partner Dashboard |
 
 > If you deploy under a **different Fly app name / URL**, update `app` and
 > `SHOPIFY_APP_URL` in `fly.toml`, `application_url` + `redirect_urls` in
@@ -45,15 +46,15 @@ npm install
 # Log in to Fly
 fly auth login
 
-# Create the app (skip if 'real-order' already exists on your org).
+# Create the app (skip if 'real-cod-order' already exists on your org).
 # --no-deploy so we can set secrets and the volume first.
-fly apps create real-order        # or: fly launch --no-deploy --copy-config --name real-order
+fly apps create real-cod-order        # or: fly launch --no-deploy --copy-config --name real-cod-order
 ```
 
 ### 2a. Create the persistent volume (SQLite lives here)
 
 ```bash
-fly volumes create data --region sin --size 1 --app real-order
+fly volumes create data --region sin --size 1 --app real-cod-order
 ```
 
 `fly.toml` already mounts `data` → `/data`, and `DATABASE_URL=file:/data/dev.sqlite`.
@@ -64,7 +65,7 @@ Only the Shopify **API secret** is required. The rest are non-secret and already
 `fly.toml [env]`.
 
 ```bash
-fly secrets set SHOPIFY_API_SECRET=<the_app_client_secret> --app real-order
+fly secrets set SHOPIFY_API_SECRET=<the_app_client_secret> --app real-cod-order
 ```
 
 That is the only secret. Everything else is in `fly.toml [env]`.
@@ -78,7 +79,7 @@ That is the only secret. Everything else is in `fly.toml [env]`.
 ## 3. Deploy
 
 ```bash
-fly deploy --app real-order
+fly deploy --app real-cod-order
 ```
 
 The build uses `Dockerfile`. On boot, `fly.toml` runs
@@ -88,15 +89,15 @@ The build uses `Dockerfile`. On boot, `fly.toml` runs
 Verify:
 
 ```bash
-fly logs --app real-order
-fly open --app real-order        # should load the app's login/install page
+fly logs --app real-cod-order
+fly open --app real-cod-order        # should load the app's login/install page
 ```
 
 ---
 
 ## 4. Point Shopify at the deployment
 
-If the URL is unchanged (`https://real-order.fly.dev`) nothing to do.
+If the URL is unchanged (`https://real-cod-order.fly.dev`) nothing to do.
 
 Otherwise, in `shopify.app.toml` update `application_url` and every entry in
 `[auth].redirect_urls`, set `client_id`, then from a machine with the Shopify CLI:

@@ -3,7 +3,7 @@
 # See https://fly.io/docs/reference/configuration/ for information about how to use this file.
 #
 
-app = 'real-order'
+app = 'real-cod-order'
 primary_region = 'sin'
 
 [build]
@@ -12,8 +12,8 @@ primary_region = 'sin'
   DATABASE_URL = 'file:/data/dev.sqlite'
   NODE_ENV = 'production'
   SCOPES = 'read_products,read_shipping,unauthenticated_read_checkouts,unauthenticated_read_product_listings,unauthenticated_write_checkouts,write_draft_orders,write_orders'
-  SHOPIFY_API_KEY = '78f9b5e49d8bebc5cf3ee772d58b1136'
-  SHOPIFY_APP_URL = 'https://real-order.fly.dev'
+  SHOPIFY_API_KEY = 'e35e650f256067d020670921f7a25ed0'
+  SHOPIFY_APP_URL = 'https://real-cod-order.fly.dev'
 
 [processes]
   app = 'node ./dbsetup.js npm run docker-start'
