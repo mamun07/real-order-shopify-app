@@ -1,7 +1,8 @@
 import { authenticate } from "../shopify.server";
 import { getLiveShippingOptions } from "../models/shipping.server";
 import { createCodOrder } from "../models/order.server";
-import { logCodOrder } from "../models/codOrder.server";
+import { logCodOrder, countCodOrdersThisMonth } from "../models/codOrder.server";
+import { getActivePlan, PLAN_LIMITS } from "../models/plan.server";
 
 function corsHeaders() {
   return { "Access-Control-Allow-Origin": "*" };
@@ -52,6 +53,15 @@ export const action = async ({ request }) => {
     );
   }
 
+  const { planKey } = await getActivePlan(admin);
+  const ordersThisMonth = await countCodOrdersThisMonth(session.shop);
+  if (ordersThisMonth >= PLAN_LIMITS[planKey]) {
+    return Response.json(
+      { error: "This store has reached its Cash on Delivery order limit for this month. Please contact the store." },
+      { status: 402, headers: corsHeaders() },
+    );
+  }
+
   const variantGid = variantId.startsWith("gid://")
     ? variantId
     : `gid://shopify/ProductVariant/${variantId}`;
@@ -98,7 +108,7 @@ export const action = async ({ request }) => {
         email,
       },
       shippingLine,
-      note: `Cash on Delivery order placed via Real Order product page popup.\nCustomer: ${fullName}, ${phone}`,
+      note: `Cash on Delivery order placed via Real COD Order product page popup.\nCustomer: ${fullName}, ${phone}`,
     });
 
     await logCodOrder(session.shop, {

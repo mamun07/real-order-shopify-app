@@ -269,7 +269,7 @@ export default function Index() {
   }, [stats]);
 
   return (
-    <s-page heading="Real Order — Cash on Delivery" inlineSize="large">
+    <s-page heading="Real COD Order" inlineSize="large">
       <s-section>
         <s-stack direction="inline" gap="base" alignItems="center" justifyContent="space-between">
           <h1 style={{ fontSize: "24px", fontWeight: "700", margin: 0 }}>Welcome back</h1>

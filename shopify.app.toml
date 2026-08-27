@@ -1,33 +1,23 @@
 # Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
 
-client_id = "ed56b9237a5bf6095f4b34ed32141909"
-application_url = "https://example.com"
+client_id = "78f9b5e49d8bebc5cf3ee772d58b1136"
+application_url = "https://real-order.fly.dev"
 embedded = true
-name = "RealOrder"
-
-[access_scopes]
-# Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
-scopes = "read_products,read_shipping,write_orders,write_draft_orders,unauthenticated_read_product_listings,unauthenticated_read_checkouts,unauthenticated_write_checkouts"
-
-[app_proxy]
-url = "https://example.com"
-subpath = "cod"
-prefix = "apps"
+name = "Real COD Order"
 
 [webhooks]
 api_version = "2026-10"
 
-  [[webhooks.subscriptions]]
-  uri = "/webhooks/app/uninstalled"
-  topics = [ "app/uninstalled" ]
-
-  [[webhooks.subscriptions]]
-  uri = "/webhooks/app/scopes_update"
-  topics = [ "app/scopes_update" ]
+[access_scopes]
+# Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
+scopes = "read_products,read_shipping,unauthenticated_read_checkouts,unauthenticated_read_product_listings,unauthenticated_write_checkouts,write_draft_orders,write_orders"
 
 [auth]
-redirect_urls = [ "https://example.com/api/auth" ]
+redirect_urls = [
+  "https://real-order.fly.dev/auth/callback",
+  "https://real-order.fly.dev/auth/shopify/callback",
+  "https://real-order.fly.dev/api/auth/callback"
+]
 
 [build]
-include_config_on_deploy = true
 automatically_update_urls_on_dev = true

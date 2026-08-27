@@ -63,12 +63,11 @@ export default function Settings() {
 
       <s-section heading="Get started">
         <s-paragraph>
-          Real Order adds a <s-text emphasis="bold">Cash on Delivery</s-text>{" "}
+          Real COD Order adds a <s-text emphasis="bold">Cash on Delivery</s-text>{" "}
           button to your product page. Shoppers click it to open a popup
           checkout that collects their delivery details, shows real
           Shopify shipping rates for their address, and places the order
-          directly — no card, no Shopify Checkout required. This app is
-          completely free, no plan or subscription needed.
+          directly — no card, no Shopify Checkout required.
         </s-paragraph>
         <s-paragraph>
           1. Click <s-text emphasis="bold">Add button to product page</s-text>{" "}

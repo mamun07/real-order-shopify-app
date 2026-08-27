@@ -15,3 +15,9 @@ export async function listCodOrders(shop, take = 25) {
 export async function countCodOrders(shop) {
   return db.codOrder.count({ where: { shop } });
 }
+
+export async function countCodOrdersThisMonth(shop) {
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  return db.codOrder.count({ where: { shop, createdAt: { gte: monthStart } } });
+}
