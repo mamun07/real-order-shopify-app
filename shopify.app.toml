@@ -1,6 +1,6 @@
 # Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
 
-client_id = "e35e650f256067d020670921f7a25ed0"
+client_id = "91519cbde6355e1bbc0c755ec8ee7a35"
 application_url = "https://example.com"
 embedded = true
 name = "Real COD Order"
@@ -26,8 +26,7 @@ api_version = "2026-10"
 scopes = "read_products,read_shipping,unauthenticated_read_checkouts,unauthenticated_read_product_listings,unauthenticated_write_checkouts,write_app_proxy,write_draft_orders,write_orders"
 
 [auth]
-redirect_urls = [ "https://example.com/auth/callback" ]
+redirect_urls = [ "https://example.com/api/auth" ]
 
 [build]
-include_config_on_deploy = true
 automatically_update_urls_on_dev = true

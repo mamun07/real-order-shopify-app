@@ -53,13 +53,20 @@ export const action = async ({ request }) => {
     );
   }
 
-  const { planKey } = await getActivePlan(admin);
-  const ordersThisMonth = await countCodOrdersThisMonth(session.shop);
-  if (ordersThisMonth >= PLAN_LIMITS[planKey]) {
-    return Response.json(
-      { error: "This store has reached its Cash on Delivery order limit for this month. Please contact the store." },
-      { status: 402, headers: corsHeaders() },
-    );
+  // Monthly plan-limit gate. Never let a billing-API hiccup or DB error here
+  // block a real order — if the check itself fails, fail open (allow the
+  // order) rather than 500 the whole request.
+  try {
+    const { planKey } = await getActivePlan(admin);
+    const ordersThisMonth = await countCodOrdersThisMonth(session.shop);
+    if (ordersThisMonth >= PLAN_LIMITS[planKey]) {
+      return Response.json(
+        { error: "This store has reached its Cash on Delivery order limit for this month. Please contact the store." },
+        { status: 402, headers: corsHeaders() },
+      );
+    }
+  } catch (error) {
+    console.error("[real-order] Plan-limit check failed; allowing order", error);
   }
 
   const variantGid = variantId.startsWith("gid://")
@@ -137,9 +144,16 @@ export const action = async ({ request }) => {
     );
   } catch (error) {
     console.error("COD order creation failed", error);
+    // Return 200, not 5xx: Shopify's app proxy swallows any 5xx body and
+    // replaces it with the storefront's themed error page, so the client
+    // never sees this JSON (or the debug string). The client checks
+    // res.json.error regardless of HTTP status.
     return Response.json(
-      { error: "We couldn't place your order. Please try again." },
-      { status: 500, headers: corsHeaders() },
+      {
+        error: "We couldn't place your order. Please try again.",
+        debug: String(error?.stack || error?.message || error),
+      },
+      { headers: corsHeaders() },
     );
   }
 };

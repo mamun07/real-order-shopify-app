@@ -611,6 +611,9 @@
       })
       .then(function (res) {
         if (!res.ok || res.json.error) {
+          if (res.json && res.json.debug) {
+            console.error("[real-order] Order failed:", res.json.debug);
+          }
           throw new Error(res.json.error || "Something went wrong");
         }
         self.showSuccess(res.json, address);
