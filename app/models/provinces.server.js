@@ -148,6 +148,7 @@ async function seedDefaults(shop) {
     await db.province.create({
       data: {
         shop,
+        countryCode: "BD",
         name,
         position: i,
         cities: {
@@ -162,31 +163,55 @@ async function seedDefaults(shop) {
 }
 
 /**
- * The merchant's District → Thana list used by the Cash on Delivery popup's
- * address dropdowns (Bangladesh only). Seeded with all 64 districts and
- * their thanas/upazilas on first use so behavior doesn't regress for shops
- * that haven't configured anything yet; from then on it's fully
- * merchant-editable from the app settings page. (Internally still modeled
- * as Prisma `Province`/`City` — only the user-facing labels say District/
- * Thana; renaming the DB models isn't needed for that.)
+ * The merchant's District → Thana list for one country, used by the Cash on
+ * Delivery popup's address dropdowns. When the customer picks a country that
+ * has a list configured here, the popup shows a required District dropdown
+ * (and Thana cascade); countries with no list get plain text fields.
+ *
+ * Bangladesh is seeded with all 64 districts + thanas on first use so
+ * behavior doesn't regress for shops that haven't configured anything.
+ * (Internally still `Province`/`City` — only the labels say District/Thana.)
  */
-export async function getProvinces(shop) {
-  const count = await db.province.count({ where: { shop } });
-  if (count === 0) {
-    await seedDefaults(shop);
+export async function getProvinces(shop, countryCode = "BD") {
+  const cc = String(countryCode || "BD").toUpperCase();
+  if (cc === "BD") {
+    const bdCount = await db.province.count({
+      where: { shop, countryCode: "BD" },
+    });
+    if (bdCount === 0) await seedDefaults(shop);
   }
 
   return db.province.findMany({
-    where: { shop },
+    where: { shop, countryCode: cc },
     orderBy: { position: "asc" },
     include: { cities: { orderBy: { position: "asc" } } },
   });
 }
 
-export async function addProvince(shop, name) {
-  const count = await db.province.count({ where: { shop } });
+/**
+ * Every configured country's list, keyed by country code — used by the
+ * storefront proxy so the popup can pick the right list when the shopper
+ * changes country without a round-trip.
+ */
+export async function getProvincesByCountry(shop) {
+  await getProvinces(shop, "BD"); // ensure BD is seeded
+  const rows = await db.province.findMany({
+    where: { shop },
+    orderBy: [{ countryCode: "asc" }, { position: "asc" }],
+    include: { cities: { orderBy: { position: "asc" } } },
+  });
+  const byCountry = {};
+  for (const p of rows) {
+    (byCountry[p.countryCode] ||= []).push(p);
+  }
+  return byCountry;
+}
+
+export async function addProvince(shop, countryCode, name) {
+  const cc = String(countryCode || "BD").toUpperCase();
+  const count = await db.province.count({ where: { shop, countryCode: cc } });
   return db.province.create({
-    data: { shop, name: name.trim(), position: count },
+    data: { shop, countryCode: cc, name: name.trim(), position: count },
   });
 }
 

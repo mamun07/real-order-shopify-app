@@ -28,6 +28,7 @@ export const action = async ({ request }) => {
     address1,
     city,
     province,
+    provinceCode,
     countryCode = "BD",
     presentmentCountry,
   } = body || {};
@@ -48,7 +49,7 @@ export const action = async ({ request }) => {
       storefront,
       variantGid,
       quantity: Number(quantity),
-      address: { address1, city, provinceCode: province },
+      address: { address1, city, provinceCode: provinceCode || province },
       countryCode,
       presentmentCountry: presentmentCountry || countryCode,
     });

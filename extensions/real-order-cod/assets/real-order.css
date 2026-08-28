@@ -36,10 +36,11 @@
 }
 
 .roc-modal {
-  background: #fff;
+  position: relative;
+  background: var(--roc-bg, #fff);
   width: 100%;
-  max-width: 420px;
-  max-height: 90vh;
+  max-width: var(--roc-width, 420px);
+  max-height: var(--roc-max-height, 90vh);
   border-radius: 16px;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
   overflow: hidden;
@@ -213,8 +214,58 @@
   -webkit-appearance: none;
 }
 
-.roc-field select {
+.roc-field select,
+.roc-combo input {
   padding-right: 34px;
+}
+
+/* Searchable dropdown (Country / District / Thana) */
+.roc-combo {
+  position: relative;
+}
+
+.roc-combo.is-open {
+  z-index: 20;
+}
+
+.roc-combo.is-open .roc-field__chevron {
+  transform: translateY(-50%) rotate(180deg);
+}
+
+.roc-combo__list {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 4px);
+  max-height: 210px;
+  overflow-y: auto;
+  background: #fff;
+  border: 1px solid #e2e2e5;
+  border-radius: 10px;
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.14);
+  z-index: 30;
+}
+
+.roc-combo__list[hidden] {
+  display: none;
+}
+
+.roc-combo__item {
+  padding: 9px 12px;
+  font-size: 14px;
+  color: #1a1a1a;
+  cursor: pointer;
+}
+
+.roc-combo__item:hover,
+.roc-combo__item.is-active {
+  background: #f2f4ff;
+}
+
+.roc-combo__empty {
+  padding: 10px 12px;
+  font-size: 13px;
+  color: #8a8f98;
 }
 
 .roc-field__chevron {
@@ -345,8 +396,8 @@
   width: 100%;
   margin-top: 16px;
   padding: 15px 16px;
-  background: #f97316;
-  color: #fff;
+  background: var(--roc-accent, #f97316);
+  color: var(--roc-accent-text, #fff);
   border: none;
   border-radius: 10px;
   font-size: 15px;
@@ -361,6 +412,299 @@
 .roc-submit:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+.roc-partial {
+  background: #f6f6f7;
+  border-radius: 10px;
+  padding: 10px 14px 4px;
+  margin-top: 8px;
+  font-size: 14px;
+}
+
+.roc-partial__note {
+  font-size: 12px;
+  color: #55504c;
+  line-height: 1.4;
+  padding: 6px 0 8px;
+}
+
+.roc-partial__hint {
+  font-size: 13px;
+  color: #1a1a1a;
+  padding: 4px 0;
+}
+
+.roc-pay-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  border-radius: inherit;
+  background: rgba(15, 15, 20, 0);
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity 0.2s ease,
+    background-color 0.2s ease,
+    visibility 0s linear 0.2s;
+}
+
+.roc-pay-layer.is-open {
+  opacity: 1;
+  visibility: visible;
+  background: rgba(15, 15, 20, 0.45);
+  transition:
+    opacity 0.2s ease,
+    background-color 0.2s ease;
+}
+
+.roc-pay {
+  width: 100%;
+  max-width: 340px;
+  max-height: 100%;
+  overflow-y: auto;
+  border: 1.5px solid var(--roc-accent, #f97316);
+  border-radius: 14px;
+  padding: 16px;
+  background: #fff;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.28);
+  opacity: 0;
+  transform: translateY(10px) scale(0.96);
+  transition:
+    opacity 0.2s ease,
+    transform 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.roc-pay-layer.is-open .roc-pay {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+.roc-pay__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.roc-pay__title {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.roc-pay__close {
+  background: none;
+  border: none;
+  font-size: 20px;
+  line-height: 1;
+  color: #77706a;
+  cursor: pointer;
+  padding: 2px 4px;
+}
+
+.roc-pay-layer .roc-pay__card {
+  align-items: flex-start;
+}
+
+.roc-pay__card {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  width: 100%;
+  box-sizing: border-box;
+  background: #fff;
+  border: 1.5px solid #f3d7bb;
+  border-radius: 12px;
+  padding: 14px;
+  margin-bottom: 12px;
+  cursor: pointer;
+  transition: border-color 0.12s ease, box-shadow 0.12s ease;
+}
+
+.roc-pay__card.is-selected {
+  border-color: var(--roc-accent, #f97316);
+  box-shadow: 0 0 0 1px var(--roc-accent, #f97316);
+}
+
+.roc-pay__card input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.roc-pay__card-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.roc-pay__card-title {
+  display: block;
+  font-size: 15px;
+  font-weight: 700;
+  color: #1a1a1a;
+}
+
+.roc-pay__card-sub {
+  display: block;
+  font-size: 12px;
+  color: #77706a;
+  line-height: 1.4;
+  margin-top: 2px;
+}
+
+.roc-pay__card-amount {
+  flex: none;
+  font-size: 17px;
+  font-weight: 700;
+  color: #1a1a1a;
+}
+
+.roc-pay__subtitle {
+  font-size: 13px;
+  font-weight: 700;
+  margin: 10px 0 6px;
+}
+
+.roc-pay__opt {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  box-sizing: border-box;
+  font-size: 13px;
+  line-height: 1.4;
+  padding: 10px 12px;
+  margin-bottom: 6px;
+  border: 1px solid #e2e2e5;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.roc-pay__opt input {
+  margin-top: 2px;
+  flex: none;
+}
+
+.roc-pay__methods {
+  border-top: 1px solid #eee;
+  margin-top: 8px;
+  padding-top: 4px;
+}
+
+.roc-pay__hint {
+  font-size: 13px;
+  color: #55504c;
+  line-height: 1.45;
+  margin: 0 0 8px;
+}
+
+.roc-pay__steps {
+  margin: 0 0 10px;
+  padding-left: 18px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #1a1a1a;
+}
+
+.roc-pay__link {
+  display: inline-block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--roc-accent, #f97316);
+  margin-bottom: 8px;
+}
+
+.roc-pay__waiting {
+  font-size: 13px;
+  color: #55504c;
+  margin-top: 6px;
+}
+
+.roc-pay__confirm,
+.roc-bkash__confirm {
+  margin-top: 12px;
+  width: 100%;
+  padding: 12px 16px;
+  border: none;
+  border-radius: 10px;
+  background: var(--roc-accent, #f97316);
+  color: var(--roc-accent-text, #fff);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.roc-bkash__confirm {
+  width: auto;
+  margin-top: 0;
+  flex: none;
+  padding: 8px 16px;
+}
+
+.roc-otp {
+  border: 1.5px solid var(--roc-accent, #f97316);
+  border-radius: 12px;
+  padding: 12px;
+  margin-top: 14px;
+  background: #fff;
+}
+
+.roc-otp__title {
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.roc-otp__demo {
+  display: block;
+  font-weight: 400;
+  color: #55504c;
+  margin-top: 2px;
+}
+
+.roc-otp__row {
+  display: flex;
+  gap: 8px;
+}
+
+.roc-otp__input {
+  flex: 1;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 8px 10px;
+  border: 1px solid #e2e2e5;
+  border-radius: 9px;
+  font-size: 16px;
+  letter-spacing: 4px;
+  text-align: center;
+}
+
+.roc-otp__verify {
+  flex: none;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 9px;
+  background: var(--roc-accent, #f97316);
+  color: var(--roc-accent-text, #fff);
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.roc-otp__resend {
+  margin-top: 8px;
+  background: none;
+  border: none;
+  padding: 2px;
+  color: var(--roc-accent, #f97316);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
 }
 
 .roc-error {

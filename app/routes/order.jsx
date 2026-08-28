@@ -3,6 +3,8 @@ import { getLiveShippingOptions } from "../models/shipping.server";
 import { createCodOrder } from "../models/order.server";
 import { logCodOrder, countCodOrdersThisMonth } from "../models/codOrder.server";
 import { getActivePlan, PLAN_LIMITS } from "../models/plan.server";
+import { getSettings } from "../models/settings.server";
+import { isPhoneVerified, normalizePhone } from "../models/otp.server";
 
 function corsHeaders() {
   return { "Access-Control-Allow-Origin": "*" };
@@ -33,6 +35,7 @@ export const action = async ({ request }) => {
     phone,
     email,
     province,
+    provinceCode,
     city,
     address1,
     countryCode = "BD",
@@ -51,6 +54,20 @@ export const action = async ({ request }) => {
       { error: "Invalid email address" },
       { status: 400, headers: corsHeaders() },
     );
+  }
+
+  const settings = await getSettings(session.shop);
+
+  // OTP gate: if the merchant requires phone verification, the number must
+  // have been verified through /apps/cod/otp just before this request.
+  if (settings.otpEnabled) {
+    const verified = await isPhoneVerified(session.shop, normalizePhone(phone));
+    if (!verified) {
+      return Response.json(
+        { error: "Please verify your phone number to place the order.", needsOtp: true },
+        { headers: corsHeaders() },
+      );
+    }
   }
 
   // Monthly plan-limit gate. Never let a billing-API hiccup or DB error here
@@ -82,7 +99,7 @@ export const action = async ({ request }) => {
       storefront,
       variantGid,
       quantity: Number(quantity),
-      address: { address1, city, provinceCode: province },
+      address: { address1, city, provinceCode: provinceCode || province },
       countryCode,
     });
     shippingLine = live.options.find((o) => o.handle === shippingHandle);
@@ -100,6 +117,11 @@ export const action = async ({ request }) => {
   const [firstName, ...rest] = fullName.trim().split(/\s+/);
   const lastName = rest.join(" ") || firstName;
 
+  // Pure Cash on Delivery — nothing paid online. When the merchant enables
+  // online payment, the Partial / Full paths run through /apps/cod/payment
+  // instead and never reach here.
+  const note = `Cash on Delivery order placed via Real COD Order product page popup.\nCustomer: ${fullName}, ${phone}`;
+
   try {
     const order = await createCodOrder(admin, {
       variantGid,
@@ -115,7 +137,7 @@ export const action = async ({ request }) => {
         email,
       },
       shippingLine,
-      note: `Cash on Delivery order placed via Real COD Order product page popup.\nCustomer: ${fullName}, ${phone}`,
+      note,
     });
 
     await logCodOrder(session.shop, {
@@ -129,6 +151,8 @@ export const action = async ({ request }) => {
       shippingMethod: shippingLine.title,
       total: Number(order.totalPriceSet.shopMoney.amount),
       currency: order.totalPriceSet.shopMoney.currencyCode,
+      paymentMethod: "cod",
+      paymentStatus: "pending",
     });
 
     return Response.json(

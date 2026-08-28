@@ -37,21 +37,71 @@ model ShopSettings {
   id             String   @id @default(cuid())
   shop           String   @unique
   enabled        Boolean  @default(true)
-  buttonText     String   @default("Cash on Delivery")
-  buttonColor    String   @default("#F97316")
+
+  // Appearance — consumed by the storefront popup via /apps/cod/config
+  headerTitle      String @default("Cash on Delivery")
+  buttonText       String @default("Cash on Delivery")
+  buttonColor      String @default("#F97316")
+  buttonTextColor  String @default("#FFFFFF")
+  backgroundColor  String @default("#FFFFFF")
+  submitButtonText String @default("COMPLETE ORDER")
+  fullNameLabel    String @default("Enter Your Full Name")
+  phoneLabel       String @default("Phone Number")
+  emailLabel       String @default("Email (optional)")
+  addressLabel     String @default("Full Address")
+  formWidth        Int    @default(480)
+  formMaxHeight    Int    @default(90)
+
+  // OTP verification. Credentials never leave the server.
+  otpEnabled           Boolean @default(false)
+  otpSmsApiUrl         String  @default("")
+  otpSmsMethod         String  @default("POST")
+  otpSmsApiKey         String  @default("")
+  otpSmsSenderId       String  @default("")
+  otpSmsParamsTemplate String  @default("")
+  otpMessageTemplate   String  @default("Your verification code is {code}")
+
+  // Online payment. When on, the popup offers Partial (advance) or Full
+  // payment; the shopper is redirected to Shopify's hosted invoice to pay,
+  // and any remainder is Cash on Delivery.
+  partialEnabled Boolean @default(false)
+  partialType    String  @default("percent")
+  partialValue   Float   @default(25)
+  partialNote    String  @default("")
+
+  // bKash as an extra payment method (shopper sends money to this number and
+  // enters the Transaction ID; verified manually for now).
+  bkashEnabled        Boolean @default(false)
+  bkashMerchantNumber String  @default("")
+
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 }
 
+model OtpChallenge {
+  id         String    @id @default(cuid())
+  shop       String
+  phone      String
+  codeHash   String
+  expiresAt  DateTime
+  attempts   Int       @default(0)
+  verifiedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([shop, phone])
+}
+
 model Province {
-  id        String   @id @default(cuid())
-  shop      String
-  name      String
-  position  Int      @default(0)
-  cities    City[]
-  createdAt DateTime @default(now())
+  id          String   @id @default(cuid())
+  shop        String
+  countryCode String   @default("BD")
+  name        String
+  position    Int      @default(0)
+  cities      City[]
+  createdAt   DateTime @default(now())
 
   @@index([shop])
+  @@index([shop, countryCode])
 }
 
 model City {
@@ -79,6 +129,12 @@ model CodOrder {
   shippingMethod  String
   total           Float
   currency        String
+  advanceAmount   Float?
+  codBalance      Float?
+  paymentMethod   String?
+  paymentChoice   String?
+  bkashTrxId      String?
+  paymentStatus   String?
   createdAt       DateTime @default(now())
 
   @@index([shop])

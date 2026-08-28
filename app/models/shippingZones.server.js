@@ -18,6 +18,10 @@ const DELIVERY_ZONE_COUNTRIES_QUERY = `#graphql
                         countryCode
                         restOfWorld
                       }
+                      provinces {
+                        name
+                        code
+                      }
                     }
                   }
                 }
@@ -64,8 +68,19 @@ export async function getShippingCountries(admin) {
           for (const country of zoneEdge.zone.countries) {
             if (country.code?.restOfWorld) continue;
             const code = country.code?.countryCode;
-            if (!code || seen.has(code)) continue;
-            seen.set(code, { code, name: country.name });
+            if (!code) continue;
+            const provinces = (country.provinces || [])
+              .filter((p) => p.code || p.name)
+              .map((p) => ({ code: p.code || p.name, name: p.name || p.code }));
+            const existing = seen.get(code);
+            if (existing) {
+              // Merge province lists across zones that both cover this country.
+              if (provinces.length && provinces.length > existing.provinces.length) {
+                existing.provinces = provinces;
+              }
+            } else {
+              seen.set(code, { code, name: country.name, provinces });
+            }
           }
         }
       }
@@ -75,5 +90,10 @@ export async function getShippingCountries(admin) {
     after = connection.pageInfo.endCursor;
   }
 
-  return Array.from(seen.values()).sort((a, b) => a.name.localeCompare(b.name));
+  return Array.from(seen.values())
+    .map((c) => ({
+      ...c,
+      provinces: c.provinces.sort((a, b) => a.name.localeCompare(b.name)),
+    }))
+    .sort((a, b) => a.name.localeCompare(b.name));
 }
