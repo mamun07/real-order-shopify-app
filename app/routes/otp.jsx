@@ -6,6 +6,7 @@ import {
   verifyChallenge,
   generateCode,
   normalizePhone,
+  OTP_RESEND_SECONDS,
 } from "../models/otp.server";
 
 function corsHeaders() {
@@ -74,7 +75,7 @@ export const action = async ({ request }) => {
 
       if (result.demo) {
         return Response.json(
-          { ok: true, demo: true, demoCode: code },
+          { ok: true, demo: true, demoCode: code, resendAfter: OTP_RESEND_SECONDS },
           { headers: corsHeaders() },
         );
       }
@@ -84,7 +85,10 @@ export const action = async ({ request }) => {
           { headers: corsHeaders() },
         );
       }
-      return Response.json({ ok: true, demo: false }, { headers: corsHeaders() });
+      return Response.json(
+        { ok: true, demo: false, resendAfter: OTP_RESEND_SECONDS },
+        { headers: corsHeaders() },
+      );
     }
 
     if (intent === "verify") {

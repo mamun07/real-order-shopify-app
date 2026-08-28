@@ -486,6 +486,177 @@
   transform: translateY(0) scale(1);
 }
 
+/* ---- OTP verification popup ------------------------------------------ */
+.roc-otp-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 12;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  border-radius: inherit;
+  background: rgba(15, 15, 20, 0);
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity 0.2s ease,
+    background-color 0.2s ease,
+    visibility 0s linear 0.2s;
+}
+
+.roc-otp-layer.is-open {
+  opacity: 1;
+  visibility: visible;
+  background: rgba(15, 15, 20, 0.45);
+  transition:
+    opacity 0.2s ease,
+    background-color 0.2s ease;
+}
+
+.roc-otp-modal {
+  position: relative;
+  width: 100%;
+  max-width: 340px;
+  max-height: 100%;
+  overflow-y: auto;
+  background: #fff;
+  border-radius: 16px;
+  padding: 28px 22px 22px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.28);
+  text-align: center;
+  opacity: 0;
+  transform: translateY(10px) scale(0.96);
+  transition:
+    opacity 0.2s ease,
+    transform 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.roc-otp-layer.is-open .roc-otp-modal {
+  opacity: 1;
+  transform: none;
+}
+
+.roc-otp-close {
+  position: absolute;
+  right: 14px;
+  top: 12px;
+  background: none;
+  border: none;
+  font-size: 20px;
+  line-height: 1;
+  color: #8a8f98;
+  cursor: pointer;
+}
+
+.roc-otp-icon {
+  width: 74px;
+  height: 74px;
+  margin: 2px auto 14px;
+  border-radius: 50%;
+  border: 2px solid var(--roc-accent, #f97316);
+  color: var(--roc-accent, #f97316);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.roc-otp-title {
+  margin: 0 0 4px;
+  font-size: 19px;
+  font-weight: 800;
+  color: #1a1a1a;
+}
+
+.roc-otp-sub {
+  margin: 0 0 14px;
+  font-size: 13px;
+  color: #8a8f98;
+}
+
+.roc-otp-phone {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border: 1px solid #e2e2e5;
+  border-radius: 999px;
+  font-size: 14px;
+  color: #1a1a1a;
+  margin-bottom: 16px;
+}
+
+.roc-otp-phone svg {
+  color: #8a8f98;
+  flex: none;
+}
+
+.roc-otp-demo {
+  font-size: 12px;
+  color: #55504c;
+  margin-bottom: 10px;
+}
+
+.roc-otp-boxes {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  margin-bottom: 12px;
+}
+
+.roc-otp-box {
+  width: 44px;
+  height: 52px;
+  min-width: 0;
+  text-align: center;
+  font-size: 22px;
+  font-weight: 700;
+  color: #1a1a1a;
+  border: 1.5px solid #dfe1ff;
+  border-radius: 12px;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.roc-otp-box:focus {
+  border-color: var(--roc-accent, #f97316);
+  box-shadow: 0 0 0 3px var(--roc-accent-soft, rgba(249, 115, 22, 0.15));
+}
+
+.roc-otp-err {
+  min-height: 16px;
+  margin-bottom: 6px;
+  font-size: 12px;
+  color: #d82c0d;
+}
+
+.roc-otp-verify {
+  width: 100%;
+  padding: 14px 16px;
+  border: none;
+  border-radius: 12px;
+  background: var(--roc-accent, #f97316);
+  color: var(--roc-accent-text, #fff);
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.roc-otp-resend {
+  margin-top: 12px;
+  background: none;
+  border: none;
+  color: var(--roc-accent, #f97316);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.roc-otp-resend:disabled {
+  color: #8a8f98;
+  cursor: not-allowed;
+}
+
 .roc-pay__head {
   display: flex;
   align-items: center;

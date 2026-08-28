@@ -266,9 +266,9 @@ export const action = async ({ request }) => {
       (intent === "create" || intent === "bkash-confirm") &&
       paymentMethod === "bkash"
     ) {
-      if (!settings.bkashEnabled) {
+      if (!settings.bkashEnabled || String(countryCode).toUpperCase() !== "BD") {
         return Response.json(
-          { error: "bKash payment is not available." },
+          { error: "bKash is only available for orders shipping to Bangladesh." },
           { headers: cors() },
         );
       }

@@ -30,6 +30,8 @@
       '<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 22s7-7.3 7-12.5A7 7 0 0 0 5 9.5C5 14.7 12 22 12 22z" fill="#fff"/></svg>',
     copy:
       '<svg width="14" height="14" viewBox="0 0 24 24" fill="none"><rect x="8" y="8" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M4 15V5a1 1 0 0 1 1-1h10" stroke="currentColor" stroke-width="1.8"/></svg>',
+    otp:
+      '<svg width="32" height="32" viewBox="0 0 24 24" fill="none"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="8.5" cy="12" r="1" fill="currentColor"/><circle cx="12" cy="12" r="1" fill="currentColor"/><circle cx="15.5" cy="12" r="1" fill="currentColor"/></svg>',
   };
 
   var _moneyFmt = {};
@@ -159,6 +161,7 @@
     this.paymentChoice = null;
     this.paymentMethod = null;
     this.pollTimer = null;
+    this.resendTimer = null;
     this.trigger = root.querySelector(".real-order-cod__trigger");
     this.trigger.addEventListener("click", this.open.bind(this));
     this.fetchRates = debounce(this._fetchRates.bind(this), 500);
@@ -289,7 +292,12 @@
       clearTimeout(this.pollTimer);
       this.pollTimer = null;
     }
+    if (this.resendTimer) {
+      clearInterval(this.resendTimer);
+      this.resendTimer = null;
+    }
     if (this.payLayer) this.payLayer.classList.remove("is-open");
+    if (this.otpLayer) this.otpLayer.classList.remove("is-open");
     if (this.submitBtn) this.submitBtn.style.display = "";
     this.overlay.classList.remove("is-open");
     document.body.style.overflow = "";
@@ -331,7 +339,6 @@
     this.statusEl = overlay.querySelector(".roc-status");
     this.errorEl = overlay.querySelector(".roc-error");
     this.bodyEl = overlay.querySelector(".roc-modal__body");
-    this.otpEl = overlay.querySelector(".roc-otp");
     this.partialEl = overlay.querySelector(".roc-partial");
 
     // Payment choice is a focused second popup layered over the whole modal
@@ -341,6 +348,13 @@
     this.payLayer.innerHTML = '<div class="roc-pay"></div>';
     this.modal.appendChild(this.payLayer);
     this.payEl = this.payLayer.querySelector(".roc-pay");
+
+    // OTP verification — its own layered popup.
+    this.otpLayer = document.createElement("div");
+    this.otpLayer.className = "roc-otp-layer";
+    this.otpLayer.innerHTML = '<div class="roc-otp-modal"></div>';
+    this.modal.appendChild(this.otpLayer);
+    this.otpEl = this.otpLayer.querySelector(".roc-otp-modal");
 
     ["address1"].forEach(function (name) {
       var el = overlay.querySelector('[name="' + name + '"]');
@@ -753,7 +767,6 @@
       '<div class="roc-summary__row roc-summary__row--total"><span>Total</span><span class="roc-summary__total"></span></div>' +
       "</div>" +
       '<div class="roc-partial" hidden></div>' +
-      '<div class="roc-otp" hidden></div>' +
       '<button type="submit" class="roc-submit">' +
       ICONS.cart +
       '<span class="roc-submit__label">' +
@@ -1142,7 +1155,7 @@
           self.showError(json.error);
           return;
         }
-        self.renderOtpUi(json.demo ? json.demoCode : null);
+        self.renderOtpUi(json.demo ? json.demoCode : null, json.resendAfter);
       })
       .catch(function () {
         self.statusEl.textContent = "";
@@ -1151,44 +1164,165 @@
       });
   };
 
-  RealOrderCod.prototype.renderOtpUi = function (demoCode) {
+  RealOrderCod.prototype.OTP_LEN = 6;
+
+  RealOrderCod.prototype.closeOtp = function () {
+    if (this.otpLayer) this.otpLayer.classList.remove("is-open");
+    if (this.resendTimer) {
+      clearInterval(this.resendTimer);
+      this.resendTimer = null;
+    }
+    if (this.submitBtn) {
+      this.submitBtn.disabled = false;
+      this.submitBtn.style.display = "";
+    }
+    if (this.statusEl) this.statusEl.textContent = "";
+  };
+
+  // "Resend Code" stays locked (with a live countdown) for as long as the
+  // current code is valid; once it expires the button is clickable again.
+  RealOrderCod.prototype.startResendCooldown = function (btn, seconds) {
+    var self = this;
+    if (this.resendTimer) {
+      clearInterval(this.resendTimer);
+      this.resendTimer = null;
+    }
+    seconds = Math.floor(Number(seconds) || 0);
+    var fmt = function (s) {
+      if (s >= 60) {
+        var m = Math.floor(s / 60);
+        var r = s % 60;
+        return m + ":" + (r < 10 ? "0" + r : r);
+      }
+      return s + "s";
+    };
+    if (seconds <= 0) {
+      btn.disabled = false;
+      btn.textContent = "Resend Code";
+      return;
+    }
+    btn.disabled = true;
+    btn.textContent = "Resend Code (" + fmt(seconds) + ")";
+    this.resendTimer = setInterval(function () {
+      seconds -= 1;
+      if (seconds <= 0) {
+        clearInterval(self.resendTimer);
+        self.resendTimer = null;
+        btn.disabled = false;
+        btn.textContent = "Resend Code";
+        return;
+      }
+      btn.textContent = "Resend Code (" + fmt(seconds) + ")";
+    }, 1000);
+  };
+
+  RealOrderCod.prototype.otpError = function (msg) {
+    var el = this.otpEl && this.otpEl.querySelector(".roc-otp-err");
+    if (el) el.textContent = msg || "";
+    else this.showError(msg);
+  };
+
+  RealOrderCod.prototype.renderOtpUi = function (demoCode, resendAfter) {
     var self = this;
     if (!this.otpEl) return;
-    this.otpEl.hidden = false;
-    this.otpEl.innerHTML =
-      '<div class="roc-otp__title">Enter the 6-digit code sent to your phone' +
-      (demoCode
-        ? ' <span class="roc-otp__demo">Demo mode — code: ' +
-          escapeHtml(demoCode) +
-          "</span>"
-        : "") +
-      "</div>" +
-      '<div class="roc-otp__row">' +
-      '<input type="text" inputmode="numeric" maxlength="6" class="roc-otp__input" placeholder="------" autocomplete="one-time-code">' +
-      '<button type="button" class="roc-otp__verify">Verify</button>' +
-      "</div>" +
-      '<button type="button" class="roc-otp__resend">Resend code</button>';
+    var phone = this.getAddress().phone || "";
+    var n = this.OTP_LEN;
 
-    var input = this.otpEl.querySelector(".roc-otp__input");
-    if (input) input.focus();
-    this.otpEl.querySelector(".roc-otp__verify").addEventListener("click", function () {
-      self.verifyOtp(input ? input.value : "");
+    var boxes = "";
+    for (var i = 0; i < n; i++) {
+      boxes +=
+        '<input type="text" inputmode="numeric" maxlength="1" class="roc-otp-box" aria-label="Digit ' +
+        (i + 1) +
+        '">';
+    }
+
+    this.otpEl.innerHTML =
+      '<button type="button" class="roc-otp-close" aria-label="Close">&times;</button>' +
+      '<div class="roc-otp-icon">' +
+      ICONS.otp +
+      "</div>" +
+      '<h3 class="roc-otp-title">Verify Phone Number</h3>' +
+      '<p class="roc-otp-sub">Enter OTP</p>' +
+      '<div class="roc-otp-phone">' +
+      ICONS.phone +
+      "<span>" +
+      escapeHtml(phone) +
+      "</span></div>" +
+      (demoCode
+        ? '<div class="roc-otp-demo">Demo mode — code: ' +
+          escapeHtml(demoCode) +
+          "</div>"
+        : "") +
+      '<div class="roc-otp-boxes">' +
+      boxes +
+      "</div>" +
+      '<div class="roc-otp-err"></div>' +
+      '<button type="button" class="roc-otp-verify">Verify Code</button>' +
+      '<button type="button" class="roc-otp-resend">Resend Code</button>';
+
+    var inputs = this.otpEl.querySelectorAll(".roc-otp-box");
+    var codeOf = function () {
+      var s = "";
+      inputs.forEach(function (b) {
+        s += (b.value || "").replace(/\D/g, "");
+      });
+      return s;
+    };
+    inputs.forEach(function (box, idx) {
+      box.addEventListener("input", function () {
+        box.value = (box.value || "").replace(/\D/g, "").slice(0, 1);
+        self.otpError("");
+        if (box.value && inputs[idx + 1]) inputs[idx + 1].focus();
+        if (codeOf().length === inputs.length) self.verifyOtp(codeOf());
+      });
+      box.addEventListener("keydown", function (e) {
+        if (e.key === "Backspace" && !box.value && inputs[idx - 1]) {
+          inputs[idx - 1].focus();
+        }
+      });
+      box.addEventListener("paste", function (e) {
+        e.preventDefault();
+        var t = ((e.clipboardData || window.clipboardData).getData("text") || "")
+          .replace(/\D/g, "")
+          .slice(0, inputs.length);
+        for (var k = 0; k < inputs.length; k++) inputs[k].value = t[k] || "";
+        var next = Math.min(t.length, inputs.length - 1);
+        if (inputs[next]) inputs[next].focus();
+        if (t.length >= inputs.length) self.verifyOtp(codeOf());
+      });
     });
-    this.otpEl.querySelector(".roc-otp__resend").addEventListener("click", function () {
-      self.startOtpFlow();
+    if (inputs[0]) inputs[0].focus();
+
+    this.otpEl
+      .querySelector(".roc-otp-close")
+      .addEventListener("click", function () {
+        self.closeOtp();
+      });
+    this.otpEl
+      .querySelector(".roc-otp-verify")
+      .addEventListener("click", function () {
+        self.verifyOtp(codeOf());
+      });
+    var resendBtn = this.otpEl.querySelector(".roc-otp-resend");
+    resendBtn.addEventListener("click", function () {
+      if (!resendBtn.disabled) self.startOtpFlow();
     });
+    this.startResendCooldown(resendBtn, resendAfter);
+
+    // Open with the same animation as the payment popup.
+    void this.otpLayer.offsetWidth;
+    this.otpLayer.classList.add("is-open");
   };
 
   RealOrderCod.prototype.verifyOtp = function (code) {
     var self = this;
     var address = this.getAddress();
     code = String(code || "").trim();
-    if (code.length < 4) {
-      this.showError("Enter the code you received.");
+    if (code.length < this.OTP_LEN) {
+      this.otpError("Enter the " + this.OTP_LEN + "-digit code.");
       return;
     }
-    this.showError("");
-    this.statusEl.textContent = "Verifying…";
+    this.otpError("");
 
     fetch(getProxyBase() + "/otp", {
       method: "POST",
@@ -1199,22 +1333,17 @@
         return r.json();
       })
       .then(function (json) {
-        self.statusEl.textContent = "";
         if (json.error) {
-          self.showError(json.error);
+          self.otpError(json.error);
           return;
         }
         self.otpVerified = true;
         self.verifiedPhone = address.phone;
-        if (self.otpEl) {
-          self.otpEl.hidden = true;
-          self.otpEl.innerHTML = "";
-        }
+        if (self.otpLayer) self.otpLayer.classList.remove("is-open");
         self.submitOrder();
       })
       .catch(function () {
-        self.statusEl.textContent = "";
-        self.showError("Couldn't verify the code. Please try again.");
+        self.otpError("Couldn't verify the code. Please try again.");
       });
   };
 
@@ -1258,7 +1387,12 @@
 
     var methodRows =
       '<label class="roc-pay__opt"><input type="radio" name="payMethod" value="shopify" checked> Card / Shopify checkout</label>';
-    if (s.bkashEnabled && s.bkashMerchantNumber) {
+    // bKash is Bangladesh-only; every other country uses Shopify checkout.
+    if (
+      s.bkashEnabled &&
+      s.bkashMerchantNumber &&
+      this.data.countryCode === "BD"
+    ) {
       methodRows +=
         '<label class="roc-pay__opt"><input type="radio" name="payMethod" value="bkash"> bKash</label>';
     }
