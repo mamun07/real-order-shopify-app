@@ -375,6 +375,9 @@
     } else if (hasNative) {
       this.districtHasCities = false;
       this.setupCombo("province", nativeProvinces, function () {
+        // Changing the province clears the typed city.
+        var cityEl = self.overlay.querySelector('[name="city"]');
+        if (cityEl) cityEl.value = "";
         self.fetchRates();
       });
     } else {
@@ -551,19 +554,27 @@
       field.classList.remove("is-open");
     }
     function pick(opt) {
+      state.picking = true;
       input.value = opt.label;
       input.dataset.value = opt.value;
       close();
-      input.dispatchEvent(new Event("input", { bubbles: true }));
       input.dispatchEvent(new Event("change", { bubbles: true }));
       if (field.__onPick) field.__onPick(opt.value, opt.label);
+      input.blur();
+      // Ignore the focus/click/input storm that a selection can trigger.
+      setTimeout(function () {
+        state.picking = false;
+      }, 200);
     }
 
-    input.addEventListener("focus", open);
+    input.addEventListener("focus", function () {
+      if (!state.picking) open();
+    });
     input.addEventListener("click", function () {
-      if (!state.open) open();
+      if (!state.picking && !state.open) open();
     });
     input.addEventListener("input", function () {
+      if (state.picking) return;
       if (!state.open) open();
       else render();
     });
@@ -708,12 +719,13 @@
     var cities = provinces[province] || [];
     this.districtHasCities = cities.length > 0;
 
+    // Changing the District always clears any previously chosen Thana.
     this.setComboOptions(
       "city",
       cities.map(function (c) {
         return { value: c, label: c };
       }),
-      { clear: keepEmpty || !this.districtHasCities },
+      { clear: true },
     );
 
     // Only show (and require) the Thana selector when the chosen District
