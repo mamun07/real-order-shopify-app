@@ -1,8 +1,10 @@
 import crypto from "node:crypto";
 import db from "../db.server";
 
-export const OTP_TTL_SECONDS = 5 * 60; // a fresh code is valid for 5 minutes
-export const OTP_RESEND_SECONDS = 90; // "Resend Code" unlocks after 1:30
+// The code is valid for 1:30; "Resend Code" unlocks at the same moment, so
+// once it expires the shopper must request a new one.
+export const OTP_RESEND_SECONDS = 90;
+export const OTP_TTL_SECONDS = OTP_RESEND_SECONDS;
 const CODE_TTL_MS = OTP_TTL_SECONDS * 1000;
 const MAX_ATTEMPTS = 5;
 const VERIFY_WINDOW_MS = 20 * 60 * 1000; // a verified number stays good for 20 min at checkout
