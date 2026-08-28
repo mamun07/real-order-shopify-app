@@ -71,8 +71,8 @@ function kpiCard(opts) {
         >
           <div
             style={{
-              width: "40px",
-              height: "40px",
+              width: "52px",
+              height: "52px",
               borderRadius: "999px",
               background: opts.color + "22",
               color: opts.color,
@@ -80,6 +80,8 @@ function kpiCard(opts) {
               alignItems: "center",
               justifyContent: "center",
               flex: "none",
+              fontSize: "26px",
+              lineHeight: 1,
             }}
           >
             {opts.icon}
