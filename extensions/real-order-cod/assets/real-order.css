@@ -416,6 +416,25 @@
   cursor: not-allowed;
 }
 
+/* In-button loading spinner (replaces the old bottom-of-form status text) */
+@keyframes roc-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.roc-spin {
+  display: block;
+  animation: roc-spin 0.7s linear infinite;
+}
+
+button.is-loading {
+  pointer-events: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .roc-partial {
   background: #f6f6f7;
   border-radius: 10px;

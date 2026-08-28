@@ -102,6 +102,30 @@
     return "/apps/cod";
   }
 
+  var SPINNER =
+    '<svg class="roc-spin" width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">' +
+    '<circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="3" stroke-opacity="0.25"/>' +
+    '<path d="M21 12a9 9 0 0 0-9-9" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg>';
+
+  // Put a spinner inside the button that triggered an async action (and
+  // disable it) instead of a shared status line at the bottom of the form.
+  function setBtnLoading(btn, loading) {
+    if (!btn) return;
+    if (loading) {
+      if (btn.dataset.orig == null) btn.dataset.orig = btn.innerHTML;
+      btn.disabled = true;
+      btn.classList.add("is-loading");
+      btn.innerHTML = SPINNER;
+    } else {
+      if (btn.dataset.orig != null) {
+        btn.innerHTML = btn.dataset.orig;
+        delete btn.dataset.orig;
+      }
+      btn.disabled = false;
+      btn.classList.remove("is-loading");
+    }
+  }
+
   // Publishes a CUSTOM Web Pixels event via Shopify's own pixel bus. This is
   // the only mechanism a storefront script can use to reach pixels — it
   // does nothing on its own. A merchant's Custom Pixel (Settings > Customer
@@ -1083,8 +1107,7 @@
       return;
     }
 
-    this.submitBtn.disabled = true;
-    this.statusEl.textContent = "Placing your order…";
+    setBtnLoading(this.submitBtn, true);
 
     fetch(getProxyBase() + "/order", {
       method: "POST",
@@ -1111,8 +1134,7 @@
       .then(function (res) {
         if (res.json && res.json.needsOtp) {
           self.otpVerified = false;
-          self.statusEl.textContent = "";
-          self.submitBtn.disabled = false;
+          setBtnLoading(self.submitBtn, false);
           self.startOtpFlow(address);
           return;
         }
@@ -1125,8 +1147,7 @@
         self.showSuccess(res.json, address);
       })
       .catch(function (err) {
-        self.statusEl.textContent = "";
-        self.submitBtn.disabled = false;
+        setBtnLoading(self.submitBtn, false);
         self.showError(err.message || "We couldn't place your order. Please try again.");
       });
   };
@@ -1137,8 +1158,14 @@
     var self = this;
     address = address || this.getAddress();
     this.showError("");
-    this.submitBtn.disabled = true;
-    this.statusEl.textContent = "Sending verification code…";
+    // Spin whichever button started this: the OTP popup's Resend button if
+    // it's already open, otherwise the form's COMPLETE ORDER button.
+    var trigger =
+      this.otpLayer && this.otpLayer.classList.contains("is-open")
+        ? this.otpEl.querySelector(".roc-otp-resend")
+        : this.submitBtn;
+    this._otpSendBtn = trigger;
+    setBtnLoading(trigger, true);
 
     fetch(getProxyBase() + "/otp", {
       method: "POST",
@@ -1149,8 +1176,7 @@
         return r.json();
       })
       .then(function (json) {
-        self.statusEl.textContent = "";
-        self.submitBtn.disabled = false;
+        setBtnLoading(self._otpSendBtn, false);
         if (json.error) {
           self.showError(json.error);
           return;
@@ -1158,8 +1184,7 @@
         self.renderOtpUi(json.demo ? json.demoCode : null, json.resendAfter);
       })
       .catch(function () {
-        self.statusEl.textContent = "";
-        self.submitBtn.disabled = false;
+        setBtnLoading(self._otpSendBtn, false);
         self.showError("Couldn't send the verification code. Please try again.");
       });
   };
@@ -1323,6 +1348,8 @@
       return;
     }
     this.otpError("");
+    var vbtn = this.otpEl && this.otpEl.querySelector(".roc-otp-verify");
+    setBtnLoading(vbtn, true);
 
     fetch(getProxyBase() + "/otp", {
       method: "POST",
@@ -1333,6 +1360,7 @@
         return r.json();
       })
       .then(function (json) {
+        setBtnLoading(vbtn, false);
         if (json.error) {
           self.otpError(json.error);
           return;
@@ -1343,6 +1371,7 @@
         self.submitOrder();
       })
       .catch(function () {
+        setBtnLoading(vbtn, false);
         self.otpError("Couldn't verify the code. Please try again.");
       });
   };
@@ -1478,7 +1507,8 @@
     this.paymentChoice = choice;
     this.paymentMethod = method;
     this.showError("");
-    this.statusEl.textContent = "Starting payment…";
+    var cbtn = this.payEl.querySelector(".roc-pay__confirm");
+    setBtnLoading(cbtn, true);
 
     fetch(getProxyBase() + "/payment", {
       method: "POST",
@@ -1489,7 +1519,7 @@
         return r.json();
       })
       .then(function (json) {
-        self.statusEl.textContent = "";
+        setBtnLoading(cbtn, false);
         if (json && json.needsOtp) {
           self.otpVerified = false;
           self.startOtpFlow(address);
@@ -1509,7 +1539,7 @@
         }
       })
       .catch(function () {
-        self.statusEl.textContent = "";
+        setBtnLoading(cbtn, false);
         self.showError("Couldn't start the payment. Please try again.");
       });
   };
@@ -1597,16 +1627,15 @@
         : "");
 
     var input = this.payEl.querySelector(".roc-bkash__trx");
-    this.payEl
-      .querySelector(".roc-bkash__confirm")
-      .addEventListener("click", function () {
+    var bbtn = this.payEl.querySelector(".roc-bkash__confirm");
+    bbtn.addEventListener("click", function () {
         var trx = input ? input.value.trim() : "";
         if (trx.length < 4) {
           self.showError("Enter the bKash Transaction ID.");
           return;
         }
         self.showError("");
-        self.statusEl.textContent = "Confirming payment…";
+        setBtnLoading(bbtn, true);
         fetch(getProxyBase() + "/payment", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -1621,7 +1650,7 @@
             return r.json();
           })
           .then(function (json2) {
-            self.statusEl.textContent = "";
+            setBtnLoading(bbtn, false);
             if (json2.error) {
               self.showError(json2.error);
               return;
@@ -1631,7 +1660,7 @@
             self.showSuccess(json2, address);
           })
           .catch(function () {
-            self.statusEl.textContent = "";
+            setBtnLoading(bbtn, false);
             self.showError("Couldn't confirm the payment. Please try again.");
           });
       });

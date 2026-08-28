@@ -109,9 +109,23 @@ export default function Settings() {
           alignItems: "flex-start",
         }}
       >
-        <nav style={{ flex: "1 1 180px", maxWidth: 240, minWidth: 160 }}>
+        <nav
+          style={{
+            flex: "1 1 180px",
+            maxWidth: 240,
+            minWidth: 160,
+            minHeight: "90vh",
+          }}
+        >
           <s-section>
-            <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: 2,
+                minHeight: "90vh",
+              }}
+            >
               {TABS.map((t) => {
                 const active = t.id === tab;
                 return (
