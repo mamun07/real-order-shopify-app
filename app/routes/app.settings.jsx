@@ -221,16 +221,9 @@ function AppearancePanel({ form, set }) {
         </Quarter>
         <Quarter>
           <ColorField
-            label="Button colour"
+            label="Brand colour"
             value={form.buttonColor}
             onChange={set("buttonColor")}
-          />
-        </Quarter>
-        <Quarter>
-          <ColorField
-            label="Button text colour"
-            value={form.buttonTextColor}
-            onChange={set("buttonTextColor")}
           />
         </Quarter>
         <Quarter>

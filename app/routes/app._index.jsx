@@ -52,36 +52,53 @@ function kpiCard(opts) {
       borderRadius="base"
       background="base"
     >
-      <s-stack direction="inline" gap="base" alignItems="center">
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: "12px",
+        }}
+      >
         <div
           style={{
-            width: "40px",
-            height: "40px",
-            borderRadius: "999px",
-            background: opts.color + "22",
-            color: opts.color,
             display: "flex",
             alignItems: "center",
-            justifyContent: "center",
-            flex: "none",
+            gap: "12px",
+            minWidth: 0,
+            flex: "1 1 auto",
           }}
         >
-          {opts.icon}
+          <div
+            style={{
+              width: "40px",
+              height: "40px",
+              borderRadius: "999px",
+              background: opts.color + "22",
+              color: opts.color,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              flex: "none",
+            }}
+          >
+            {opts.icon}
+          </div>
+          <s-stack direction="block" gap="tight">
+            <s-text color="subdued">{opts.label}</s-text>
+            <s-heading>{opts.value}</s-heading>
+            <s-text color="subdued">{opts.subtitle}</s-text>
+          </s-stack>
         </div>
-        <s-stack direction="block" gap="tight" style={{ flex: "1" }}>
-          <s-text color="subdued">{opts.label}</s-text>
-          <s-heading>{opts.value}</s-heading>
-          <s-text color="subdued">{opts.subtitle}</s-text>
-        </s-stack>
         <canvas
           ref={opts.registerSparkline}
           data-color={opts.color}
           data-values={JSON.stringify(opts.trend)}
           width="90"
           height="36"
-          style={{ flex: "none" }}
+          style={{ flex: "none", marginLeft: "auto" }}
         />
-      </s-stack>
+      </div>
     </s-box>
   );
 }

@@ -32,9 +32,57 @@
       '<svg width="14" height="14" viewBox="0 0 24 24" fill="none"><rect x="8" y="8" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M4 15V5a1 1 0 0 1 1-1h10" stroke="currentColor" stroke-width="1.8"/></svg>',
   };
 
+  var _moneyFmt = {};
   function formatMoney(amount, currency) {
     var n = Number(amount || 0);
-    return currency + " " + n.toFixed(2);
+    var code = String(currency || "").toUpperCase();
+    // Proper currency formatting with the currency symbol — e.g. "৳1,172.23",
+    // "$84.56" (grouping + per-currency decimals).
+    try {
+      if (code) {
+        if (!_moneyFmt[code]) {
+          _moneyFmt[code] = new Intl.NumberFormat("en", {
+            style: "currency",
+            currency: code,
+            currencyDisplay: "narrowSymbol",
+          });
+        }
+        return _moneyFmt[code].format(n).replace(/\s+/g, " ").trim();
+      }
+    } catch (e) {
+      // Unknown currency code or no narrowSymbol support — plain fallback.
+    }
+    return (code ? code + " " : "") + n.toFixed(2);
+  }
+
+  // ---- Brand colour → derived shades ----------------------------------
+  // One "brand colour" setting drives every accent in the popup. The text
+  // colour on top of it and a soft tint for selected/hover states are
+  // computed here so the merchant only picks one value.
+  function hexToRgb(hex) {
+    var h = String(hex || "").replace("#", "").trim();
+    if (h.length === 3) h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
+    if (!/^[0-9a-fA-F]{6}$/.test(h)) return null;
+    return {
+      r: parseInt(h.slice(0, 2), 16),
+      g: parseInt(h.slice(2, 4), 16),
+      b: parseInt(h.slice(4, 6), 16),
+    };
+  }
+  function readableOn(hex) {
+    var c = hexToRgb(hex);
+    if (!c) return "#ffffff";
+    var lin = function (v) {
+      v /= 255;
+      return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+    };
+    var L = 0.2126 * lin(c.r) + 0.7152 * lin(c.g) + 0.0722 * lin(c.b);
+    return L > 0.55 ? "#111111" : "#ffffff";
+  }
+  function tint(hex, alpha) {
+    var c = hexToRgb(hex);
+    if (!c) return "rgba(0,0,0,0.06)";
+    return "rgba(" + c.r + "," + c.g + "," + c.b + "," + alpha + ")";
   }
 
   function debounce(fn, wait) {
@@ -145,11 +193,19 @@
       });
   };
 
+  RealOrderCod.prototype.brandColor = function () {
+    var s = this.settings || {};
+    return s.brandColor || s.buttonColor || "";
+  };
+
   RealOrderCod.prototype.applyTriggerSettings = function () {
     var s = this.settings;
     if (!s || !this.trigger) return;
-    if (s.buttonColor) this.trigger.style.setProperty("--roc-accent", s.buttonColor);
-    if (s.buttonTextColor) this.trigger.style.color = s.buttonTextColor;
+    var brand = this.brandColor();
+    if (brand) {
+      this.trigger.style.setProperty("--roc-accent", brand);
+      this.trigger.style.color = readableOn(brand);
+    }
     if (s.buttonText) {
       var replaced = false;
       for (var i = 0; i < this.trigger.childNodes.length; i++) {
@@ -172,9 +228,15 @@
     if (s.formWidth) this.modal.style.setProperty("--roc-width", s.formWidth + "px");
     if (s.formMaxHeight)
       this.modal.style.setProperty("--roc-max-height", s.formMaxHeight + "vh");
-    if (s.buttonColor) this.modal.style.setProperty("--roc-accent", s.buttonColor);
-    if (s.buttonTextColor)
-      this.modal.style.setProperty("--roc-accent-text", s.buttonTextColor);
+
+    var brand = this.brandColor();
+    if (brand) {
+      var st = this.modal.style;
+      st.setProperty("--roc-accent", brand);
+      st.setProperty("--roc-accent-text", readableOn(brand)); // text on brand
+      st.setProperty("--roc-accent-soft", tint(brand, 0.1)); // hover / selected bg
+      st.setProperty("--roc-accent-line", tint(brand, 0.55)); // selected border
+    }
 
     var h = this.modal.querySelector(".roc-modal__header h2");
     if (h && s.headerTitle) h.textContent = s.headerTitle;
@@ -831,21 +893,16 @@
       this.partialEl.innerHTML = "";
       return;
     }
-    var currency = this.liveSubtotal
-      ? this.liveSubtotal.currencyCode
-      : this.data.currency;
-    var total =
-      this.subtotal() + (this.selectedShipping ? this.selectedShipping.amount : 0);
-    var p = this.computePartial(total);
-    var pctLabel = s.partialType === "percent" ? s.partialValue + "%" : "an advance";
+    // Only the merchant's own note (if any) — the concrete split is shown in
+    // the payment step popup.
+    if (!s.partialNote) {
+      this.partialEl.hidden = true;
+      this.partialEl.innerHTML = "";
+      return;
+    }
     this.partialEl.hidden = false;
     this.partialEl.innerHTML =
-      '<div class="roc-partial__hint">Pay ' +
-      (p ? formatMoney(p.advance, currency) + " (" + pctLabel + ")" : pctLabel) +
-      " now with the rest on delivery, or the full amount — you choose next.</div>" +
-      (s.partialNote
-        ? '<div class="roc-partial__note">' + escapeHtml(s.partialNote) + "</div>"
-        : "");
+      '<div class="roc-partial__note">' + escapeHtml(s.partialNote) + "</div>";
   };
 
   RealOrderCod.prototype._fetchRates = function () {

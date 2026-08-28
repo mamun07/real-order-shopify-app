@@ -30,7 +30,7 @@ export function toPublicSettings(s) {
     headerTitle: s.headerTitle,
     buttonText: s.buttonText,
     buttonColor: s.buttonColor,
-    buttonTextColor: s.buttonTextColor,
+    brandColor: s.buttonColor,
     backgroundColor: s.backgroundColor,
     submitButtonText: s.submitButtonText,
     fullNameLabel: s.fullNameLabel,

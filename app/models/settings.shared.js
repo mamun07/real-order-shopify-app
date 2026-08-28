@@ -8,8 +8,10 @@ export const SETTINGS_DEFAULTS = {
   enabled: true,
   headerTitle: "Cash on Delivery",
   buttonText: "Cash on Delivery",
+  // Single brand colour — drives every accent in the popup (button, focus
+  // rings, selected states, success icons). Text-on-brand and soft tints are
+  // derived on the storefront. Stored in the legacy `buttonColor` column.
   buttonColor: "#F97316",
-  buttonTextColor: "#FFFFFF",
   backgroundColor: "#FFFFFF",
   submitButtonText: "COMPLETE ORDER",
   fullNameLabel: "Enter Your Full Name",
