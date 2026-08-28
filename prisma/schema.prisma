@@ -10,7 +10,9 @@ generator client {
 // See https://www.prisma.io/docs/orm/reference/prisma-schema-reference#string for more information
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+  // Direct postgresql:// connection. Prisma Postgres injects this as
+  // POSTGRES_URL; a plain Vercel Postgres / Neon injects it as DATABASE_URL.
+  url      = env("POSTGRES_URL")
 }
 
 model Session {
