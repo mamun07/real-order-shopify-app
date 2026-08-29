@@ -91,7 +91,16 @@ export async function createCodOrder(admin, { variantGid, quantity, customer, sh
 const DRAFT_ORDER_INVOICE_CREATE = `#graphql
   mutation codDraftOrderInvoiceCreate($input: DraftOrderInput!) {
     draftOrderCreate(input: $input) {
-      draftOrder { id invoiceUrl }
+      draftOrder {
+        id
+        invoiceUrl
+        totalPriceSet { shopMoney { amount currencyCode } }
+        paymentTerms {
+          paymentSchedules(first: 5) {
+            nodes { amount { amount currencyCode } dueAt }
+          }
+        }
+      }
       userErrors { field message }
     }
   }
@@ -109,6 +118,8 @@ const DRAFT_ORDER_STATUS = `#graphql
         subtotalPriceSet { shopMoney { amount currencyCode } }
         totalShippingPriceSet { shopMoney { amount currencyCode } }
         totalPriceSet { shopMoney { amount currencyCode } }
+        totalReceivedSet { shopMoney { amount currencyCode } }
+        totalOutstandingSet { shopMoney { amount currencyCode } }
       }
     }
   }
@@ -117,12 +128,17 @@ const DRAFT_ORDER_STATUS = `#graphql
 /**
  * A draft order the shopper pays online through Shopify's own hosted invoice
  * page (returned as `invoiceUrl`). It is deliberately NOT completed here —
- * Shopify turns it into a real, paid order once the invoice is paid; call
+ * Shopify turns it into a real order once the invoice is paid; call
  * getDraftOrderStatus to detect that.
  *
- * `balanceDiscountPercent` > 0 makes the invoice charge only the advance: a
- * draft-order-level percentage discount covering the Cash-on-Delivery
- * balance, titled so it is obvious on the order.
+ * When `depositPercent` is 1–99 the draft carries a native Shopify **deposit**
+ * (`DraftOrderInput.deposit`) plus fixed payment terms for the remainder. The
+ * hosted invoice then shows "Due today" (the deposit) and "Total due later"
+ * (the balance), collects only the deposit, and the resulting order lands
+ * "Partially paid" with the balance as a real outstanding amount — no discount,
+ * full order total preserved. The merchant collects the balance on delivery
+ * and marks it paid. `depositPercent` 0/undefined → the invoice charges the
+ * full amount (Full-payment choice).
  */
 export async function createCodDraftInvoice(admin, {
   variantGid,
@@ -131,7 +147,8 @@ export async function createCodDraftInvoice(admin, {
   shippingLine,
   note,
   customAttributes,
-  balanceDiscountPercent,
+  depositPercent,
+  balanceDueInDays = 14,
 }) {
   const input = {
     lineItems: [{ variantId: variantGid, quantity }],
@@ -156,12 +173,19 @@ export async function createCodDraftInvoice(admin, {
   if (customAttributes && customAttributes.length) {
     input.customAttributes = customAttributes;
   }
-  if (balanceDiscountPercent > 0) {
-    input.appliedDiscount = {
-      valueType: "PERCENTAGE",
-      value: Number(balanceDiscountPercent),
-      title: "Balance payable on delivery (COD)",
-      description: "Collected as Cash on Delivery",
+
+  const pct = Math.round(Number(depositPercent) || 0);
+  const wantsDeposit = pct >= 1 && pct <= 99;
+  if (wantsDeposit) {
+    input.deposit = { percentage: pct };
+    input.paymentTerms = {
+      paymentSchedules: [
+        {
+          dueAt: new Date(
+            Date.now() + balanceDueInDays * 24 * 60 * 60 * 1000,
+          ).toISOString(),
+        },
+      ],
     };
   }
 
@@ -177,7 +201,22 @@ export async function createCodDraftInvoice(admin, {
       errors.map((e) => e.message).join(", ") || "draftOrderCreate failed",
     );
   }
-  return { id: draft.id, invoiceUrl: draft.invoiceUrl };
+
+  const schedules = draft.paymentTerms?.paymentSchedules?.nodes || [];
+  const depositDue =
+    wantsDeposit && schedules[0]?.amount?.amount != null
+      ? Number(schedules[0].amount.amount)
+      : null;
+
+  return {
+    id: draft.id,
+    invoiceUrl: draft.invoiceUrl,
+    total: draft.totalPriceSet?.shopMoney?.amount
+      ? Number(draft.totalPriceSet.shopMoney.amount)
+      : null,
+    depositDue,
+    hasDeposit: wantsDeposit,
+  };
 }
 
 export async function getDraftOrderStatus(admin, id) {
