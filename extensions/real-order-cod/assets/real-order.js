@@ -34,6 +34,14 @@
       '<svg width="32" height="32" viewBox="0 0 24 24" fill="none"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="8.5" cy="12" r="1" fill="currentColor"/><circle cx="12" cy="12" r="1" fill="currentColor"/><circle cx="15.5" cy="12" r="1" fill="currentColor"/></svg>',
   };
 
+  // Shopify Liquid `variant.price` is an integer number of cents. Parse it
+  // digit-only (guards against a stray "1,049.00"-style string) then /100.
+  function centsToMajor(raw) {
+    var digits = String(raw == null ? "" : raw).replace(/[^0-9]/g, "");
+    if (!digits) return 0;
+    return parseInt(digits, 10) / 100;
+  }
+
   var _moneyFmt = {};
   function formatMoney(amount, currency) {
     var n = Number(amount || 0);
@@ -159,9 +167,11 @@
       productTitle: root.dataset.productTitle,
       variantTitle: root.dataset.variantTitle,
       image: root.dataset.image,
-      price: parseFloat(root.dataset.price || "0"),
+      // data-price / data-compare-at-price are raw cents from Liquid
+      // (variant.price). Strip any stray non-digits defensively, then /100.
+      price: centsToMajor(root.dataset.price),
       compareAtPrice: root.dataset.compareAtPrice
-        ? parseFloat(root.dataset.compareAtPrice)
+        ? centsToMajor(root.dataset.compareAtPrice)
         : null,
       currency: root.dataset.currency,
       addressDataset: root.dataset.addressDataset || "auto",

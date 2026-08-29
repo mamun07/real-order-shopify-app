@@ -15,8 +15,10 @@
   data-product-title="{{ product.title | escape }}"
   data-variant-title="{{ variant.title | escape }}"
   data-image="{{ product.featured_image | image_url: width: 200 }}"
-  data-price="{{ variant.price | money_without_currency | strip_html }}"
-  data-compare-at-price="{% if variant.compare_at_price > variant.price %}{{ variant.compare_at_price | money_without_currency | strip_html }}{% endif %}"
+  {%- comment -%} Raw cents — never locale-formatted; the popup divides by 100. A
+  formatted string like "1,049.00" would be truncated to 1 by parseFloat. {%- endcomment -%}
+  data-price="{{ variant.price }}"
+  data-compare-at-price="{% if variant.compare_at_price > variant.price %}{{ variant.compare_at_price }}{% endif %}"
   data-currency="{{ localization.country.currency.iso_code | default: cart.currency.iso_code | default: shop.currency }}"
   data-presentment-country="{{ localization.country.iso_code }}"
   data-address-dataset="{{ block.settings.address_dataset }}"
