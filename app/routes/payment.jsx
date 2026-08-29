@@ -83,21 +83,11 @@ export const action = async ({ request }) => {
       const currency = o.totalPriceSet.shopMoney.currencyCode;
       const invoiceTotal = Number(o.totalPriceSet.shopMoney.amount);
       const orderTotal = Number(body.orderTotal || invoiceTotal);
-      // Trust the real order figures: with a native deposit the order keeps its
-      // full total, "totalReceived" is the paid advance and "totalOutstanding"
-      // is the balance still due on delivery.
-      const received = Number(o.totalReceivedSet?.shopMoney?.amount);
-      const outstanding = Number(o.totalOutstandingSet?.shopMoney?.amount);
-      const amountPaid =
-        Number.isFinite(received) && received > 0
-          ? received
-          : Number(body.expectedAmount || invoiceTotal);
-      const codBalance = Number.isFinite(outstanding)
-        ? Math.max(0, Math.round(outstanding * 100) / 100)
-        : Math.max(0, Math.round((orderTotal - amountPaid) * 100) / 100);
-      const paymentStatus =
-        (o.displayFinancialStatus || "").toLowerCase() ||
-        (codBalance > 0 ? "partially_paid" : "paid");
+      const amountPaid = Number(body.expectedAmount || invoiceTotal);
+      const codBalance = Math.max(
+        0,
+        Math.round((orderTotal - amountPaid) * 100) / 100,
+      );
 
       await logCodOrder(session.shop, {
         orderId: o.id,
@@ -114,7 +104,7 @@ export const action = async ({ request }) => {
         codBalance,
         paymentMethod: "shopify",
         paymentChoice: body.paymentChoice || null,
-        paymentStatus,
+        paymentStatus: "paid",
       }).catch((e) =>
         console.error("[real-order] logCodOrder (paid) failed", e),
       );
@@ -130,7 +120,7 @@ export const action = async ({ request }) => {
           amountPaid,
           codBalance,
           paymentMethod: "shopify",
-          paymentStatus,
+          paymentStatus: "paid",
         },
         { headers: cors() },
       );
@@ -200,14 +190,19 @@ export const action = async ({ request }) => {
       Number(live.subtotal?.amount || 0) + Number(shippingLine.amount || 0);
 
     let payNow = orderTotal;
-    let depositPercent = 0;
+    let balanceDiscountPercent = 0;
     if (paymentChoice === "partial") {
       const p = computePartial(settings, orderTotal);
       payNow = p ? p.advance : orderTotal;
-      // Shopify's native deposit is a whole percentage of the order total.
-      depositPercent =
+      balanceDiscountPercent =
         orderTotal > 0
-          ? Math.min(99, Math.max(1, Math.round((payNow / orderTotal) * 100)))
+          ? Math.max(
+              0,
+              Math.min(
+                100,
+                Math.round(((orderTotal - payNow) / orderTotal) * 10000) / 100,
+              ),
+            )
           : 0;
     }
     const codBalance = Math.max(
@@ -249,26 +244,17 @@ export const action = async ({ request }) => {
         shippingLine,
         note,
         customAttributes,
-        depositPercent,
+        balanceDiscountPercent,
       });
-
-      // Prefer Shopify's own deposit figure (what the invoice will actually
-      // charge "Due today"); fall back to our computed advance.
-      const dueToday =
-        draft.hasDeposit && draft.depositDue != null ? draft.depositDue : payNow;
-      const dueLater = Math.max(
-        0,
-        Math.round(((draft.total ?? orderTotal) - dueToday) * 100) / 100,
-      );
 
       return Response.json(
         {
           method: "shopify",
           draftOrderId: draft.id,
           invoiceUrl: draft.invoiceUrl,
-          expectedAmount: dueToday,
-          orderTotal: draft.total ?? orderTotal,
-          codBalance: dueLater,
+          expectedAmount: payNow,
+          orderTotal,
+          codBalance,
           currency,
         },
         { headers: cors() },
